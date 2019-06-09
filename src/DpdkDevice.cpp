@@ -17,34 +17,47 @@ DpdkDevice::DpdkDevice(const uint8_t portId, const std::string pciAddr, const ui
   if (memPool == nullptr) {
     std::cout << "null\n"; 
   } 
-  std::string ringMode{"ring_sp_sc"};
+  std::string ringMode{"ring_mp_mc"};
   rte_mempool_set_ops_byname(memPool, ringMode.c_str(), nullptr);
   rte_pktmbuf_pool_init(memPool, nullptr);
+  rte_mempool_populate_default(memPool);
   rte_mempool_obj_iter(memPool, rte_pktmbuf_init, nullptr);
 
   //queue
+  struct rte_eth_dev_info dev_info;
+  rte_eth_dev_info_get(portId, &dev_info);
 
-  struct rte_eth_conf port_conf;
-  port_conf.rxmode.split_hdr_size = 0;
-//  port_conf.txmode.mq_mode = ETH_MQ_TX_NONE;
-  port_conf.txmode.offloads =0x800f ;// DEV_TX_OFFLOAD_MBUF_FAST_FREE;
+struct rte_eth_conf portConf;
+  memset(&portConf, 0, sizeof(rte_eth_conf));
+  portConf.rxmode.split_hdr_size = 0;
+  portConf.rxmode.max_rx_pkt_len = 1500;
+  portConf.rxmode.mq_mode = ETH_MQ_RX_NONE;
+  portConf.rxmode.offloads |= dev_info.rx_offload_capa;
+  portConf.txmode.offloads |= dev_info.tx_offload_capa & DEV_TX_OFFLOAD_MBUF_FAST_FREE;
+  portConf.txmode.hw_vlan_reject_tagged = 0;
+  portConf.txmode.hw_vlan_reject_untagged = 0;
+  portConf.txmode.hw_vlan_insert_pvid = 0;
+  portConf.txmode.mq_mode = ETH_MQ_TX_NONE;
+  rte_eth_dev_configure(portId, 1, 1, &portConf);
 
-  rte_eth_dev_configure(portId, 1, 1, &port_conf);
-  auto ret = rte_eth_rx_queue_setup(portId, 0, 1024,
-               rte_eth_dev_socket_id(portId),
-               nullptr,
-               memPool);
-  if (ret < 0) {
+  if (auto ret = rte_eth_rx_queue_setup(portId, 0, 64, rte_eth_dev_socket_id(portId), nullptr, memPool) < 0) {
           rte_exit(EXIT_FAILURE, "rte_eth_rx_queue_setup:err=%d, port=%u\n",
           ret, portId);
-
-    std::cout <<"cannot init queue\n"; 
+  }
+  
+  if (auto ret = rte_eth_tx_queue_setup(portId, 0, 32, SOCKET_ID_ANY/*rte_eth_dev_socket_id(portId)*/, nullptr) < 0) {
+          rte_exit(EXIT_FAILURE, "rte_eth_tx_queue_setup:err=%d, port=%u\n",
+          ret, portId);
   }
 }
 
 bool DpdkDevice::startDevice() const {
+  if(rte_eth_dev_start(portId) < 0) {
+    return false; 
+  }
+ 
   rte_eth_promiscuous_enable(portId);
-  return (rte_eth_dev_start(portId) < 0) ? false : true;
+  return true;
 }
 
 bool DpdkDevice::setIpAddr(std::string &ipStr) {

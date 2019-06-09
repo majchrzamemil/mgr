@@ -21,6 +21,5 @@ bool DpdkEngine::initDpdk(int dpdkArgc, char** dpdkArgv) {
 }
 
 void DpdkEngine::startEngine() {
-  std::cout << device->getPciAddress() << "\n";
   device->startDevice();
 }
