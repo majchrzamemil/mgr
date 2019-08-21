@@ -28,11 +28,11 @@ int processPackets(void *) {
     for (auto pktId{0u}; pktId < nrOfRecPackets; ++pktId) {
       ether_hdr *srcEth{rte_pktmbuf_mtod(packets[pktId], ether_hdr *)};
       std::cout << "received packet from:" << unsigned(srcEth->s_addr.addr_bytes[0]) << ":"
-                << unsigned(srcEth->s_addr.addr_bytes[1]) << ":"
-                << unsigned(srcEth->s_addr.addr_bytes[2]) << ":"
-                << unsigned(srcEth->s_addr.addr_bytes[3]) << ":"
-                << unsigned(srcEth->s_addr.addr_bytes[4]) << ":"
-                << unsigned(srcEth->s_addr.addr_bytes[5]) << "\n";
+                << std::hex << unsigned(srcEth->s_addr.addr_bytes[1]) << ":"
+                << std::hex << unsigned(srcEth->s_addr.addr_bytes[2]) << ":"
+                << std::hex << unsigned(srcEth->s_addr.addr_bytes[3]) << ":"
+                << std::hex << unsigned(srcEth->s_addr.addr_bytes[4]) << ":"
+                << std::hex << unsigned(srcEth->s_addr.addr_bytes[5]) << "\n";
       rte_pktmbuf_free(packets[pktId]);
     }
   }
