@@ -1,0 +1,2 @@
+struct http_hdr {
+};

@@ -13,7 +13,6 @@ bool DpdkEngine::initDpdk(int dpdkArgc, char** dpdkArgv) {
   }
   auto numOfPorts = rte_eth_dev_count_avail();
   if (numOfPorts == 1u) {
-    std::make_unique<DpdkDevice>();
     device = std::make_unique<DpdkDevice>(0, std::string("dupa"), 2048u, 64, 0);      
   }
   if (device == nullptr) {
@@ -24,4 +23,12 @@ bool DpdkEngine::initDpdk(int dpdkArgc, char** dpdkArgv) {
 
 void DpdkEngine::startEngine() {
   device->startDevice();
+}
+
+uint8_t DpdkEngine::receivePackets(Http** packets) {
+  return 0u;
+}
+
+void DpdkEngine::sendPackets(const Http** pakcets, uint8_t pktCount) {
+
 }
