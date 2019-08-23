@@ -7,7 +7,7 @@
 #include <memory>
 #include <iostream>
 
-bool DpdkEngine::initDpdk(int dpdkArgc, char** dpdkArgv) {
+bool DpdkEngine::init(int dpdkArgc, char** dpdkArgv) {
   if(rte_eal_init(dpdkArgc, dpdkArgv) < 0) {
     return false; 
   }
@@ -24,11 +24,23 @@ bool DpdkEngine::initDpdk(int dpdkArgc, char** dpdkArgv) {
 void DpdkEngine::startEngine() {
   device->startDevice();
 }
+//hede will be Packet insted of ether_hdr, Packet processor will handle that
+//add freeRing, on this ring packet process will enqueue Packets to free, and Engine is going to perform freeing
+uint16_t DpdkEngine::receivePackets(ether_hdr** packets) {
+  const auto devId = device->getDeviceId();
+  auto nrOfRecPkts = rte_eth_rx_burst(devId, 0, rxPackets, RX_BURST_SIZE);
+  if (unlikely(nrOfRecPkts == 0u)) {
+    return 0u; 
+  }
 
-uint8_t DpdkEngine::receivePackets(Http** packets) {
-  return 0u;
+  for(auto it{0u}; it < nrOfRecPkts; ++it){
+    packets[it] = rte_pktmbuf_mtod(rxPackets[it], ether_hdr*);  
+  }
+
+  return nrOfRecPkts;
 }
 
-void DpdkEngine::sendPackets(const Http** pakcets, uint8_t pktCount) {
+void DpdkEngine::sendPackets(const ether_hdr** pakcets, uint16_t pktCount) {
+ //fill mbufs and send 
 
 }

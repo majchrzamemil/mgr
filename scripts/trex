@@ -1,0 +1,2 @@
+./trex-console
+start -f stl/udp_1pkt_simple.py -m 10mbps -p 0

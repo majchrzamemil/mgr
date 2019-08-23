@@ -13,41 +13,31 @@
 #include <rte_debug.h>
 #include <rte_ethdev.h>
 
-
+#include "../include/PacketProcessor.hpp"
+#include "../include/ReceiverTransmitter.hpp"
 #include "../include/Config.hpp"
 #include "../include/DpdkEngine.hpp"
 
-int processPackets(void *) {
-  std::cout << "processing packets\n";
-  //for now:
-  uint8_t portId{0u};
-  const uint8_t burstSize{64u};
-  while (true) {
-    rte_mbuf* packets[burstSize];
-    auto nrOfRecPackets = rte_eth_rx_burst(portId, 0, packets, burstSize);
-    for (auto pktId{0u}; pktId < nrOfRecPackets; ++pktId) {
-      ether_hdr *srcEth{rte_pktmbuf_mtod(packets[pktId], ether_hdr *)};
-      std::cout << "received packet from:" << unsigned(srcEth->s_addr.addr_bytes[0]) << ":"
-                << std::hex << unsigned(srcEth->s_addr.addr_bytes[1]) << ":"
-                << std::hex << unsigned(srcEth->s_addr.addr_bytes[2]) << ":"
-                << std::hex << unsigned(srcEth->s_addr.addr_bytes[3]) << ":"
-                << std::hex << unsigned(srcEth->s_addr.addr_bytes[4]) << ":"
-                << std::hex << unsigned(srcEth->s_addr.addr_bytes[5]) << "\n";
-      rte_pktmbuf_free(packets[pktId]);
-    }
-  }
+//for now
+int runRT(void *arg) {
+  ReceiverTransmitter* rt = static_cast<ReceiverTransmitter*>(arg);
+  rt->run();
   return 0;
 }
 
 int
 main(int argc, char **argv) {
   unsigned lcore_id;
-  DpdkEngine engine;
-  if (engine.initDpdk(argc, argv)) {
-    engine.startEngine();
-  }
+//  DpdkEngine engine;
+//  if (engine.initDpdk(argc, argv)) {
+//    engine.startEngine();
+//  }
+  std::unique_ptr<rte_ring> rxRing(rte_ring_create("rxRing", RX_BURST_SIZE, SOCKET_ID_ANY, 0));
+  std::unique_ptr<rte_ring> txRing(rte_ring_create("txRing", TX_BURST_SIZE, SOCKET_ID_ANY, 0));
+  std::unique_ptr<ReceiverTransmitter> rt = std::make_unique<ReceiverTransmitter>(rxRing.get(), txRing.get(), EngineType::DPDK, argc, argv);
+  
   RTE_LCORE_FOREACH_SLAVE(lcore_id) {
-    rte_eal_remote_launch(processPackets, NULL, lcore_id);
+    rte_eal_remote_launch(runRT, rt.get(), lcore_id);
     if (rte_eal_wait_lcore(lcore_id) < 0) {
       break;
     }

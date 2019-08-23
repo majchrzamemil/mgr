@@ -1,3 +1,5 @@
+#ifndef HTTP
+#define HTTP
 #include "http_hdr.hpp"
 class Http {
   public:
@@ -6,3 +8,4 @@ class Http {
   private:
     http_hdr* mHdr;
 };
+#endif

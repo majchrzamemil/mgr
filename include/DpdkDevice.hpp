@@ -12,6 +12,9 @@
 
 using MacAddress = std::array<uint8_t, 6>;
 
+constexpr uint16_t RX_BURST_SIZE{64u};
+constexpr uint16_t TX_BURST_SIZE{32u};
+
 class DpdkDevice {
  public:
   DpdkDevice(const uint8_t portId, const std::string pciAddr, const uint32_t mBufPollSize,
