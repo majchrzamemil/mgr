@@ -26,7 +26,7 @@ void DpdkEngine::startEngine() {
 }
 //hede will be Packet insted of ether_hdr, Packet processor will handle that
 //add freeRing, on this ring packet process will enqueue Packets to free, and Engine is going to perform freeing
-uint16_t DpdkEngine::receivePackets(ether_hdr** packets) {
+uint16_t DpdkEngine::receivePackets(Packet** packets) {
   const auto devId = device->getDeviceId();
   auto nrOfRecPkts = rte_eth_rx_burst(devId, 0, rxPackets, RX_BURST_SIZE);
   if (unlikely(nrOfRecPkts == 0u)) {
@@ -34,13 +34,27 @@ uint16_t DpdkEngine::receivePackets(ether_hdr** packets) {
   }
 
   for(auto it{0u}; it < nrOfRecPkts; ++it){
-    packets[it] = rte_pktmbuf_mtod(rxPackets[it], ether_hdr*);  
+    packets[it] = new Packet(rxPackets[it]);
+    //    packets[it] = rte_pktmbuf_mtod(rxPackets[it], ether_hdr*);  
   }
 
   return nrOfRecPkts;
 }
 
-void DpdkEngine::sendPackets(const ether_hdr** pakcets, uint16_t pktCount) {
+void DpdkEngine::sendPackets(const Packet** pakcets, uint16_t pktCount) {
  //fill mbufs and send 
 
+}
+
+void DpdkEngine::freePackets(rte_ring* freeRing) {
+  Packet* packets[TX_BURST_SIZE];
+  auto nrOfPkts = rte_ring_dequeue_burst(freeRing, reinterpret_cast<void**>(packets), TX_BURST_SIZE, nullptr);
+  //std::cout <<nrOfPkts << std::endl;
+  if (nrOfPkts == 0u) {
+    return; 
+  }
+  for(auto it{0u}; it < nrOfPkts; ++it) {
+    rte_pktmbuf_free(packets[it]->getMBuf());
+    //delete packets[it];
+  }
 }

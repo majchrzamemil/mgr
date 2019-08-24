@@ -10,7 +10,7 @@ enum class EngineType {
 
 class ReceiverTransmitter {
   public:
-    ReceiverTransmitter(rte_ring* rxRing, rte_ring* txRing, EngineType type, int dpdkArgc, char** dpdkArgv);
+    ReceiverTransmitter(rte_ring* rxRing, rte_ring* txRing, rte_ring* freeRing, EngineType type, int dpdkArgc, char** dpdkArgv);
     void run();
   private:
     void receivePackets();
@@ -18,5 +18,6 @@ class ReceiverTransmitter {
     std::unique_ptr<Engine> mEngine;
     rte_ring* mRxRing;
     rte_ring* mTxRing;
+    rte_ring* mFreeRing;
 };
 #endif

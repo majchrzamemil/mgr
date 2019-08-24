@@ -11,8 +11,9 @@ class DpdkEngine : public Engine {
   public:
     bool init(int dpdkArgc, char** dpdkArgv);
     void startEngine();
-    uint16_t receivePackets(ether_hdr**);
-    void sendPackets(const ether_hdr**, uint16_t pktCount);
+    uint16_t receivePackets(Packet**);
+    void sendPackets(const Packet**, uint16_t pktCount);
+    void freePackets(rte_ring* freeRing);
   private:
     std::unique_ptr<DpdkDevice> device;
     rte_mbuf* rxPackets[RX_BURST_SIZE];
