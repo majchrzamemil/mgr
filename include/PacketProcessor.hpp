@@ -10,18 +10,21 @@
 #include "Http.hpp"
 #include "Engine.hpp"
 
-class PacketProcessor{
-  public:
-    PacketProcessor(rte_ring* rxRing, rte_ring* txRing): mRxRing{rxRing}, mTxRing{txRing} {}
-    void processPackets();  //run
-    ~PacketProcessor() {}
-  private:
-    ether_hdr* mEthHdr;
-    ipv4_hdr* mIpHdr;
-    tcp_hdr* mTcpHdr;
-    Http* mHttp;
+class PacketProcessor {
+ public:
+  PacketProcessor(rte_ring* rxRing, rte_ring* txRing, rte_ring* freeRing, uint16_t rxBurstSize): mRxRing{rxRing}, mTxRing{txRing}, mFreeRing{freeRing}, mRxBurstSize{rxBurstSize} {} 
+  void processPackets();  //run
+  ~PacketProcessor() {}
+ private:
+  ether_hdr* handlePacket(Packet* packet);
+  ether_hdr* mEthHdr;
+  ipv4_hdr* mIpHdr;
+  tcp_hdr* mTcpHdr;
+  Http* mHttp;
 
-    rte_ring* mRxRing;
-    rte_ring* mTxRing;
+  rte_ring* mRxRing;
+  rte_ring* mTxRing;
+  rte_ring* mFreeRing;
+  const uint16_t mRxBurstSize;
 };
 #endif

@@ -44,16 +44,8 @@ void DpdkEngine::sendPackets(Packet** packets, uint16_t pktCount) {
  pktCount = pktCount > TX_BURST_SIZE ? TX_BURST_SIZE : pktCount;
   for(auto it{0u}; it < pktCount; ++it) {
     mBufsToSend[it] = packets[it]->getMBuf();
-  //  mBufsToSend[it] = rte_pktmbuf_alloc(mDevice->getMempool());
-  //  if(mBufsToSend[it] == nullptr) {
-  //    for(auto pktToFree{it}; pktToFree < pktCount; ++pktToFree){
-  //      //packets[pktToFree]->freeData();
-  //    }      
-  //  }
-  //  mBufsToSend[it]->pkt_len = packets[it]->getDataLen(); 
-  //  mBufsToSend[it]->data_len = packets[it]->getDataLen();
-  //  //ether_hdr* eth  = reinterpret_cast<ether_hdr*>(packets[it]->getData());
-  //  mBufsToSend[it]->buf_addr = packets[it]->getData();
+ //are you going to allocate packets or just modify existing ones, for now modifing. 
+    //  mBufsToSend[it] = rte_pktmbuf_alloc(mDevice->getMempool());
   }
                                         //create some constant for queuId
   auto nrSentPkts = rte_eth_tx_burst(mDevice->getDeviceId(), 0, mBufsToSend, pktCount); 
@@ -74,6 +66,5 @@ void DpdkEngine::freePackets(rte_ring* freeRing) const {
   }
   for(auto it{0u}; it < nrOfPkts; ++it) {
     rte_pktmbuf_free(packets[it]->getMBuf());
-    //delete packets[it];
   }
 }

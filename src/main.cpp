@@ -39,27 +39,25 @@ main(int argc, char **argv) {
 
   engine->init(argc, argv);
 
-  std::unique_ptr<rte_ring> rxRing(rte_ring_create("rxRing", RX_BURST_SIZE, SOCKET_ID_ANY, 0));
-  std::unique_ptr<rte_ring> txRing(rte_ring_create("txRing", TX_BURST_SIZE, SOCKET_ID_ANY, 0));
-  std::unique_ptr<rte_ring> freeRing(rte_ring_create("freeRing", TX_BURST_SIZE, SOCKET_ID_ANY, 0));
+  std::unique_ptr<rte_ring> rxRing(rte_ring_create("rxRing", RING_SIZE, SOCKET_ID_ANY, 0));
+  std::unique_ptr<rte_ring> txRing(rte_ring_create("txRing", RING_SIZE, SOCKET_ID_ANY, 0));
+  std::unique_ptr<rte_ring> freeRing(rte_ring_create("freeRing", RING_SIZE, SOCKET_ID_ANY, 0));
 
   std::unique_ptr<ReceiverTransmitter> rt = std::make_unique<ReceiverTransmitter>(rxRing.get(), txRing.get(),
       freeRing.get(), engine.get());
-  std::unique_ptr<PacketProcessor> packetProcessor = std::make_unique<PacketProcessor>(rxRing.get(), txRing.get());
+  std::unique_ptr<PacketProcessor> packetProcessor = std::make_unique<PacketProcessor>(rxRing.get(), txRing.get(),
+      freeRing.get(), RX_BURST_SIZE);
 
   engine->startEngine();
-  std::cout << "dupa";
-    
-  rte_eal_remote_launch(runRT, rt.get(), 1u);
-  rte_eal_remote_launch(runPacketProcessor, packetProcessor.get(), 2u);
+ 
+  //init those thread properly, remove magic lcore numbers
+  rte_eal_remote_launch(runPacketProcessor, packetProcessor.get(), RT_LCORE);
+  rte_eal_remote_launch(runRT, rt.get(), PP_LCORE);
 
   RTE_LCORE_FOREACH_SLAVE(lcore_id) {
     if (rte_eal_wait_lcore(lcore_id) < 0) {
       break;
     }
   }
-//    std::cout << "dupa" <<  unsigned(ret);
-//    //rte_eal_remote_launch(runPacketProcessor, packetProcessor.get(), 2);
- // }
   return 0;
 }
