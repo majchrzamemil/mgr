@@ -14,7 +14,7 @@ void ReceiverTransmitter::run() {
   while (true) {
     receivePackets();
     sendPackets();
-  //  mEngine->freePackets(mFreeRing);
+    mEngine->freePackets(mFreeRing);
 
   }
 }
@@ -25,26 +25,27 @@ void ReceiverTransmitter::receivePackets() {
   if (nrOfRecPkts == 0u) {
     return;
   }
-  for (auto it{0u}; it < nrOfRecPkts; ++it) {
-    ether_hdr* eth  = reinterpret_cast<ether_hdr*>(packets[it]->getData());
-    std::cout << unsigned(eth->s_addr.addr_bytes[5]) << std::endl;
- //   eth = rte_pktmbuf_mtod(packets[it]->getMBuf(), ether_hdr*);
-    ether_addr d_addr = eth->d_addr;
-    eth->d_addr = eth->s_addr;
-    eth->s_addr = d_addr;
-    
-  }
+ // for (auto it{0u}; it < nrOfRecPkts; ++it) {
+ //   ether_hdr* eth  = reinterpret_cast<ether_hdr*>(packets[it]->getData());
+ //   ether_addr d_addr = eth->d_addr;
+ //   eth->d_addr = eth->s_addr;
+ //   eth->s_addr = d_addr;
+ //   
+ // }
   //test:
-  mEngine->sendPackets(packets, nrOfRecPkts);
+//  mEngine->sendPackets(packets, nrOfRecPkts);
 
-  //only for test print and free
-  for (auto pktId{0u}; pktId < nrOfRecPkts; ++pktId) {
-    //just free test
-   // rte_ring_sp_enqueue(mFreeRing, rxPackets[pktId]);
+  auto rt =rte_ring_enqueue_burst(mRxRing, reinterpret_cast<void**>(packets), nrOfRecPkts, nullptr);
+  for (auto pktId{rt}; pktId < nrOfRecPkts; ++pktId) {
+    rte_ring_sp_enqueue(mFreeRing, rxPackets[pktId]);
   }
 
 }
 
 void ReceiverTransmitter::sendPackets() {
-// rte_ring_sc_dequeue_bulk(mTxRing, )
+  Packet* txPackets[RX_BURST_SIZE];
+  auto nrOfRecPkts = rte_ring_dequeue_burst(mTxRing, reinterpret_cast<void**>(txPackets), RX_BURST_SIZE, nullptr);
+  if(nrOfRecPkts == 0)
+    return;
+  mEngine->sendPackets(txPackets, nrOfRecPkts);
 }

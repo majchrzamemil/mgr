@@ -59,7 +59,9 @@ void DpdkEngine::sendPackets(Packet** packets, uint16_t pktCount) {
   auto nrSentPkts = rte_eth_tx_burst(mDevice->getDeviceId(), 0, mBufsToSend, pktCount); 
   
   if(nrSentPkts != pktCount) {
-     std::cout << "Implementa free packets\n"; 
+    for(auto it{nrSentPkts}; it < pktCount; ++it) {
+      rte_pktmbuf_free(mBufsToSend[it]); 
+    }
   }
   
 }

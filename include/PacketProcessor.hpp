@@ -12,8 +12,9 @@
 
 class PacketProcessor{
   public:
-    PacketProcessor(rte_ring* rxRing, rte_ring* txRing){}
-    void processPackets() {} //run
+    PacketProcessor(rte_ring* rxRing, rte_ring* txRing): mRxRing{rxRing}, mTxRing{txRing} {}
+    void processPackets();  //run
+    ~PacketProcessor() {}
   private:
     ether_hdr* mEthHdr;
     ipv4_hdr* mIpHdr;

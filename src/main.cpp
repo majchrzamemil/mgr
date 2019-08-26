@@ -25,6 +25,12 @@ int runRT(void *arg) {
   return 0;
 }
 
+int runPacketProcessor(void * arg) {
+  PacketProcessor* rt = static_cast<PacketProcessor*>(arg);
+  rt->processPackets();
+  return 0;
+}
+
 int
 main(int argc, char **argv) {
   unsigned lcore_id;
@@ -39,13 +45,21 @@ main(int argc, char **argv) {
 
   std::unique_ptr<ReceiverTransmitter> rt = std::make_unique<ReceiverTransmitter>(rxRing.get(), txRing.get(),
       freeRing.get(), engine.get());
+  std::unique_ptr<PacketProcessor> packetProcessor = std::make_unique<PacketProcessor>(rxRing.get(), txRing.get());
 
   engine->startEngine();
+  std::cout << "dupa";
+    
+  rte_eal_remote_launch(runRT, rt.get(), 1u);
+  rte_eal_remote_launch(runPacketProcessor, packetProcessor.get(), 2u);
+
   RTE_LCORE_FOREACH_SLAVE(lcore_id) {
-    rte_eal_remote_launch(runRT, rt.get(), lcore_id);
     if (rte_eal_wait_lcore(lcore_id) < 0) {
       break;
     }
   }
+//    std::cout << "dupa" <<  unsigned(ret);
+//    //rte_eal_remote_launch(runPacketProcessor, packetProcessor.get(), 2);
+ // }
   return 0;
 }

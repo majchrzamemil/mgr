@@ -7,6 +7,7 @@ class ReceiverTransmitter {
   public:
     ReceiverTransmitter(rte_ring* const rxRing, rte_ring* const txRing, rte_ring* const freeRing, Engine* const engine);
     void run();
+    ~ReceiverTransmitter(){}
   private:
     void receivePackets();
     void sendPackets();
