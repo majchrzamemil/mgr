@@ -17,32 +17,32 @@ constexpr uint16_t TX_BURST_SIZE{32u};
 
 class DpdkDevice {
  public:
-  DpdkDevice(const uint8_t portId, const std::string pciAddr, const uint32_t mBufPollSize,
+  DpdkDevice(const uint8_t portId, const std::string& pciAddr, const uint32_t mBufPollSize,
              const uint16_t memPoolCashSize, const uint8_t memPoolFlags);
   [[nodiscard]] uint8_t getDeviceId() const {
-    return portId;
+    return mPortId;
   }
 
   [[nodiscard]]MacAddress getMacAddress() const {
-    return macAddress;
+    return mMacAddress;
   }
 
   [[nodiscard]] std::string getPciAddress() const {
-    return pciAddress;
+    return mPciAddress;
   }
 
   [[nodiscard]] rte_mempool* getMempool() const {
-    return memPool;
+    return mMemPool;
   }
   bool startDevice() const;
 
   bool setIpAddr(std::string &ipStr);
  private:
-  std::string pciAddress;
-  uint8_t portId;
-  MacAddress macAddress;
-  rte_mempool* memPool;
-  in_addr ipAddr;
+  std::string mPciAddress;
+  uint8_t mPortId;
+  MacAddress mMacAddress;
+  rte_mempool* mMemPool;
+  in_addr mIpAddr;
 };
 
 #endif

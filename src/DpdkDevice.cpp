@@ -4,24 +4,21 @@
 
 #include <rte_ethdev.h>
 #include <rte_config.h>
-
-#include <iostream>
-DpdkDevice::DpdkDevice(const uint8_t portId, const std::string pciAddr, const uint32_t mBufPollSize,
-                       const uint16_t memPoolCashSize, const uint8_t memPoolFlags) : portId{portId}, pciAddress{pciAddr} {
+//split to smaller functions
+DpdkDevice::DpdkDevice(const uint8_t portId, const std::string& pciAddr, const uint32_t mBufPollSize,
+                       const uint16_t memPoolCashSize, const uint8_t memPoolFlags) :  mPciAddress{pciAddr}, mPortId{portId} { 
   ether_addr macAddr;
   rte_eth_macaddr_get(portId, &macAddr);
-  std::copy(std::begin(macAddr.addr_bytes), std::end(macAddr.addr_bytes), std::begin(macAddress));
+  std::copy(std::begin(macAddr.addr_bytes), std::end(macAddr.addr_bytes), std::begin(mMacAddress));
   //init of mempool
-  memPool = rte_mempool_create_empty("memPool", mBufPollSize, RTE_MBUF_DEFAULT_BUF_SIZE, memPoolCashSize,
-                                     sizeof(rte_pktmbuf_pool_private), 0, memPoolFlags);
-  if (memPool == nullptr) {
-    std::cout << "null\n"; 
-  } 
-  std::string ringMode{"ring_mp_mc"};
-  rte_mempool_set_ops_byname(memPool, ringMode.c_str(), nullptr);
-  rte_pktmbuf_pool_init(memPool, nullptr);
-  rte_mempool_populate_default(memPool);
-  rte_mempool_obj_iter(memPool, rte_pktmbuf_init, nullptr);
+  mMemPool = rte_mempool_create_empty("mMemPool", mBufPollSize, RTE_MBUF_DEFAULT_BUF_SIZE, memPoolCashSize,
+                                     sizeof(rte_pktmbuf_pool_private), SOCKET_ID_ANY,MEMPOOL_F_SP_PUT| MEMPOOL_F_SC_GET);
+  
+  std::string ringMode{"ring_sp_sc"};
+  rte_mempool_set_ops_byname(mMemPool, ringMode.c_str(), nullptr);
+  rte_pktmbuf_pool_init(mMemPool, nullptr);
+  rte_mempool_populate_default(mMemPool);
+  rte_mempool_obj_iter(mMemPool, rte_pktmbuf_init, nullptr);
 
   //queue
   struct rte_eth_dev_info dev_info;
@@ -33,33 +30,40 @@ struct rte_eth_conf portConf;
   portConf.rxmode.max_rx_pkt_len = 1500;
   portConf.rxmode.mq_mode = ETH_MQ_RX_NONE;
   portConf.rxmode.offloads |= dev_info.rx_offload_capa;
-  portConf.txmode.offloads |= dev_info.tx_offload_capa & DEV_TX_OFFLOAD_MBUF_FAST_FREE;
+  portConf.txmode.offloads |= dev_info.tx_offload_capa;
   portConf.txmode.hw_vlan_reject_tagged = 0;
   portConf.txmode.hw_vlan_reject_untagged = 0;
   portConf.txmode.hw_vlan_insert_pvid = 0;
   portConf.txmode.mq_mode = ETH_MQ_TX_NONE;
-  rte_eth_dev_configure(portId, 1, 1, &portConf);
 
-  if (auto ret = rte_eth_rx_queue_setup(portId, 0, 64, rte_eth_dev_socket_id(portId), nullptr, memPool) < 0) {
+  constexpr uint16_t nrOfQueues{1u};
+  rte_eth_dev_configure(portId, nrOfQueues, nrOfQueues, &portConf);
+  
+  constexpr uint16_t queueId{0u};
+  if (auto ret = rte_eth_rx_queue_setup(portId, queueId, RX_BURST_SIZE, rte_eth_dev_socket_id(portId), nullptr, mMemPool) < 0) {
           rte_exit(EXIT_FAILURE, "rte_eth_rx_queue_setup:err=%d, port=%u\n",
           ret, portId);
   }
   
-  if (auto ret = rte_eth_tx_queue_setup(portId, 0, 32, SOCKET_ID_ANY/*rte_eth_dev_socket_id(portId)*/, nullptr) < 0) {
+  if (auto ret = rte_eth_tx_queue_setup(portId, queueId, TX_BURST_SIZE, SOCKET_ID_ANY, nullptr) < 0) {
           rte_exit(EXIT_FAILURE, "rte_eth_tx_queue_setup:err=%d, port=%u\n",
           ret, portId);
   }
+//   rte_eth_stats eth_stats;
+//   auto rt = rte_eth_stats_get(0, &eth_stats);
+//  if(rt  ==0)
+//   printf("Opackets: %lu, oerrors: %lu\n", eth_stats.opackets, eth_stats.oerrors);
 }
 
 bool DpdkDevice::startDevice() const {
-  if(rte_eth_dev_start(portId) < 0) {
+  if(rte_eth_dev_start(mPortId) < 0) {
     return false; 
   }
  
-  rte_eth_promiscuous_enable(portId);
+  rte_eth_promiscuous_enable(mPortId);
   return true;
 }
 
 bool DpdkDevice::setIpAddr(std::string &ipStr) {
-  return (inet_pton(AF_INET, ipStr.c_str(), reinterpret_cast<void*>(&ipAddr)) == 1) ? true : false;
+  return (inet_pton(AF_INET, ipStr.c_str(), reinterpret_cast<void*>(&mIpAddr)) == 1) ? true : false;
 }

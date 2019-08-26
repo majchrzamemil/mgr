@@ -3,21 +3,17 @@
 #include "DpdkEngine.hpp"
 #include "rte_ring.h"
 
-enum class EngineType {
-  DPDK,
-  SOCKET
-};
-
 class ReceiverTransmitter {
   public:
-    ReceiverTransmitter(rte_ring* rxRing, rte_ring* txRing, rte_ring* freeRing, EngineType type, int dpdkArgc, char** dpdkArgv);
+    ReceiverTransmitter(rte_ring* const rxRing, rte_ring* const txRing, rte_ring* const freeRing, Engine* const engine);
     void run();
   private:
     void receivePackets();
     void sendPackets();
-    std::unique_ptr<Engine> mEngine;
-    rte_ring* mRxRing;
-    rte_ring* mTxRing;
-    rte_ring* mFreeRing;
+    Engine* mEngine;
+    rte_ring* const mRxRing;
+    rte_ring* const mTxRing;
+    rte_ring* const mFreeRing;
+    Packet* rxPackets[RX_BURST_SIZE];
 };
 #endif

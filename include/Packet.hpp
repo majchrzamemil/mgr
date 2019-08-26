@@ -5,10 +5,21 @@
 //think about getters, and descrution
 class Packet {
  public:
-   Packet() = default;
-   Packet(uint8_t* data, size_t dataLen) : mData{data}, mDataLen{dataLen}, mbuf{nullptr} {}
-   Packet(rte_mbuf* buf): mData{static_cast<uint8_t*>(buf->buf_addr)}, mDataLen{buf->data_len}, mbuf{buf} {}
-   rte_mbuf* getMBuf() const { return mbuf;}
+  Packet(uint8_t* data, size_t dataLen) : mData{data}, mDataLen{dataLen}, mbuf{nullptr} {}
+  Packet(rte_mbuf* buf): mData{static_cast<uint8_t*>(buf->buf_addr) + buf->data_off}, mDataLen{buf->data_len},
+    mbuf{buf} {}
+  rte_mbuf* getMBuf() const {
+    return mbuf;
+  }
+  void freeData() {
+    delete mData;
+  }
+  uint8_t* getData() const {
+    return mData;
+  }
+  size_t getDataLen() const {
+    return mDataLen;
+  }
  private:
   uint8_t* mData;
   size_t mDataLen;

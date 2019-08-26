@@ -18,7 +18,6 @@
 #include "../include/Config.hpp"
 #include "../include/DpdkEngine.hpp"
 
-#include <rte_malloc_heap.h>
 //for now
 int runRT(void *arg) {
   ReceiverTransmitter* rt = static_cast<ReceiverTransmitter*>(arg);
@@ -29,20 +28,24 @@ int runRT(void *arg) {
 int
 main(int argc, char **argv) {
   unsigned lcore_id;
- 
- // std::cout << malloc
-//  std::unique_ptr<rte_ring> rxRing(rte_ring_create("rxRing", RX_BURST_SIZE, 0, 0));
-//  std::unique_ptr<rte_ring> txRing(rte_ring_create("txRing", TX_BURST_SIZE, SOCKET_ID_ANY, 0));
-//  std::unique_ptr<rte_ring> freeRing = nullptr;//(rte_ring_create("freeRing", TX_BURST_SIZE, 0, 0));
-  std::unique_ptr<ReceiverTransmitter> rt = std::make_unique<ReceiverTransmitter>(nullptr,nullptr , nullptr,
-      EngineType::DPDK, argc, argv);
 
+  std::unique_ptr<Engine> engine = std::make_unique<DpdkEngine>();
+
+  engine->init(argc, argv);
+
+  std::unique_ptr<rte_ring> rxRing(rte_ring_create("rxRing", RX_BURST_SIZE, SOCKET_ID_ANY, 0));
+  std::unique_ptr<rte_ring> txRing(rte_ring_create("txRing", TX_BURST_SIZE, SOCKET_ID_ANY, 0));
+  std::unique_ptr<rte_ring> freeRing(rte_ring_create("freeRing", TX_BURST_SIZE, SOCKET_ID_ANY, 0));
+
+  std::unique_ptr<ReceiverTransmitter> rt = std::make_unique<ReceiverTransmitter>(rxRing.get(), txRing.get(),
+      freeRing.get(), engine.get());
+
+  engine->startEngine();
   RTE_LCORE_FOREACH_SLAVE(lcore_id) {
     rte_eal_remote_launch(runRT, rt.get(), lcore_id);
     if (rte_eal_wait_lcore(lcore_id) < 0) {
       break;
     }
   }
-  std::cout << "end";
   return 0;
 }
