@@ -17,6 +17,7 @@
 #include "../include/ReceiverTransmitter.hpp"
 #include "../include/Config.hpp"
 #include "../include/DpdkEngine.hpp"
+#include "../include/SocketEngine.hpp"
 
 //for now
 int runRT(void *arg) {
@@ -33,10 +34,11 @@ int runPacketProcessor(void * arg) {
 
 int
 main(int argc, char **argv) {
-  unsigned lcore_id;
+//  unsigned lcore_id;
 
-  std::unique_ptr<Engine> engine = std::make_unique<DpdkEngine>();
+//  std::unique_ptr<Engine> engine = std::make_unique<DpdkEngine>();
 
+  std::unique_ptr<Engine> engine = std::make_unique<SocketEngine>();
   engine->init(argc, argv);
 
   std::unique_ptr<rte_ring> rxRing(rte_ring_create("rxRing", RING_SIZE, SOCKET_ID_ANY, 0));
@@ -49,15 +51,16 @@ main(int argc, char **argv) {
       freeRing.get(), RX_BURST_SIZE);
 
   engine->startEngine();
- 
-  //init those thread properly, remove magic lcore numbers
-  rte_eal_remote_launch(runPacketProcessor, packetProcessor.get(), RT_LCORE);
-  rte_eal_remote_launch(runRT, rt.get(), PP_LCORE);
 
-  RTE_LCORE_FOREACH_SLAVE(lcore_id) {
-    if (rte_eal_wait_lcore(lcore_id) < 0) {
-      break;
-    }
-  }
+  rt->run();
+  //init those thread properly, remove magic lcore numbers
+//  rte_eal_remote_launch(runPacketProcessor, packetProcessor.get(), RT_LCORE);
+//  rte_eal_remote_launch(runRT, rt.get(), PP_LCORE);
+//
+//  RTE_LCORE_FOREACH_SLAVE(lcore_id) {
+//    if (rte_eal_wait_lcore(lcore_id) < 0) {
+//      break;
+//    }
+//  }
   return 0;
 }

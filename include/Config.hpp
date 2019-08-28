@@ -9,5 +9,4 @@ constexpr int DPDK_ARGS_C {5};
 constexpr uint16_t RT_LCORE{1u};
 constexpr uint16_t PP_LCORE{2u};
 constexpr uint16_t RING_SIZE{512u};
-
 #endif
