@@ -2,9 +2,14 @@
 
 #include <arpa/inet.h>
 
+#include <rte_ethdev.h>
 //for now, later create init in Engine.hpp and there init DPDK EAL
 bool SocketEngine::init([[maybe_unused]]int dpdkArgc, [[maybe_unused]]char** dpdkArgv) {
 
+  //move rte_eal_init 
+  if(rte_eal_init(dpdkArgc, dpdkArgv) < 0) {
+    return false; 
+  }
   //later add this to init parameter
   mDevice = std::make_unique<SocketDevice>("enp0s25");
   mDevice->setIpAddr(std::string{"192.168.1.1"});

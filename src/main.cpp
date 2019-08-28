@@ -34,7 +34,7 @@ int runPacketProcessor(void * arg) {
 
 int
 main(int argc, char **argv) {
-//  unsigned lcore_id;
+  unsigned lcore_id;
 
 //  std::unique_ptr<Engine> engine = std::make_unique<DpdkEngine>();
 
@@ -52,15 +52,15 @@ main(int argc, char **argv) {
 
   engine->startEngine();
 
-  rt->run();
+//  rt->run();
   //init those thread properly, remove magic lcore numbers
 //  rte_eal_remote_launch(runPacketProcessor, packetProcessor.get(), RT_LCORE);
-//  rte_eal_remote_launch(runRT, rt.get(), PP_LCORE);
-//
-//  RTE_LCORE_FOREACH_SLAVE(lcore_id) {
-//    if (rte_eal_wait_lcore(lcore_id) < 0) {
-//      break;
-//    }
-//  }
+  rte_eal_remote_launch(runRT, rt.get(), PP_LCORE);
+
+  RTE_LCORE_FOREACH_SLAVE(lcore_id) {
+    if (rte_eal_wait_lcore(lcore_id) < 0) {
+      break;
+    }
+  }
   return 0;
 }
