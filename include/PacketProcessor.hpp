@@ -12,7 +12,8 @@
 
 class PacketProcessor {
  public:
-  PacketProcessor(rte_ring* rxRing, rte_ring* txRing, rte_ring* freeRing, uint16_t rxBurstSize): mRxRing{rxRing}, mTxRing{txRing}, mFreeRing{freeRing}, mRxBurstSize{rxBurstSize} {} 
+  PacketProcessor(rte_ring* rxRing, rte_ring* txRing, rte_ring* freeRing, uint16_t rxBurstSize): mRxRing{rxRing}, mTxRing{txRing},
+    mFreeRing{freeRing}, mRxBurstSize{rxBurstSize} {}
   void processPackets();  //run
   ~PacketProcessor() {}
  private:

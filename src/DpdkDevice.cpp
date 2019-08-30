@@ -5,8 +5,8 @@
 #include <rte_ethdev.h>
 #include <rte_config.h>
 //split to smaller functions
-DpdkDevice::DpdkDevice(const uint8_t portId, const uint32_t mBufPollSize,
-                       const uint16_t memPoolCashSize, const uint8_t memPoolFlags, uint16_t rxBurstSize, uint16_t txBurstSize) :  mPortId{portId} {
+DpdkDevice::DpdkDevice(const uint8_t portId, const uint32_t mBufPollSize, const uint16_t memPoolCashSize,
+                       const uint8_t memPoolFlags, uint16_t rxBurstSize, uint16_t txBurstSize) :  mPortId{portId} {
   ether_addr macAddr;
   rte_eth_macaddr_get(portId, &macAddr);
   std::copy(std::begin(macAddr.addr_bytes), std::end(macAddr.addr_bytes), std::begin(mMacAddress.addr_bytes));

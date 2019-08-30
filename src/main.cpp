@@ -43,7 +43,10 @@ main(int argc, char **argv) {
     engine = std::make_unique<SocketEngine>();
   }
 
-  engine->init(argc, argv, config);
+  if(!engine->init(argc, argv, config)){
+    std::cout <<"Failed to start engine!\n";
+    return -1;
+  }
 
   std::unique_ptr<rte_ring> rxRing(rte_ring_create("rxRing", RING_SIZE, SOCKET_ID_ANY, 0));
   std::unique_ptr<rte_ring> txRing(rte_ring_create("txRing", RING_SIZE, SOCKET_ID_ANY, 0));

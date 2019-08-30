@@ -12,8 +12,12 @@ class SocketDevice {
   bool startDevice();
 
   bool setIpAddr(std::string ipStr);
-  in_addr getIpAddr(){ return mIpAddr;}
-  int getSocketDesc() const { return mSocketDesc;}
+  in_addr getIpAddr() {
+    return mIpAddr;
+  }
+  int getSocketDesc() const {
+    return mSocketDesc;
+  }
  private:
   in_addr mIpAddr;
   int mSocketDesc;

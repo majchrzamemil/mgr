@@ -78,7 +78,7 @@ void DpdkEngine::freePackets(rte_ring* freeRing) const {
 }
 
 void DpdkEngine::swapMac(rte_mbuf* packet) const {
-  ether_hdr*  etherHeader = rte_pktmbuf_mtod(packet, ether_hdr*);
+  ether_hdr* etherHeader = rte_pktmbuf_mtod(packet, ether_hdr*);
   ether_addr d_addr = etherHeader->d_addr;
   etherHeader->d_addr = etherHeader->s_addr;
   etherHeader->s_addr = d_addr;

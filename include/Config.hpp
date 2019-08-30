@@ -13,8 +13,8 @@ enum class EngineType {
 constexpr uint16_t RT_LCORE{1u};
 constexpr uint16_t PP_LCORE{2u};
 constexpr uint16_t RING_SIZE{512u};
-
 constexpr EngineType ENGINE_TYPE{EngineType::DPDK};
+
 const EngineConfig config{
   .portId = 0u,
   .mBuffPoolSize = 2047u,
