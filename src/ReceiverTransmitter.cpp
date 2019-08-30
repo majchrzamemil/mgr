@@ -12,8 +12,8 @@ ReceiverTransmitter::ReceiverTransmitter(rte_ring* const rxRing, rte_ring* const
 void ReceiverTransmitter::run() {
   while (true) {
     receivePackets();
-  //  sendPackets();
-  //  mEngine->freePackets(mFreeRing);
+    sendPackets();
+    mEngine->freePackets(mFreeRing);
 
   }
 }
@@ -25,11 +25,10 @@ void ReceiverTransmitter::receivePackets() {
     return;
   }
 
-  mEngine->sendPackets(packets, 0);
-//  auto rt = rte_ring_enqueue_burst(mRxRing, reinterpret_cast<void**>(packets), nrOfRecPkts, nullptr);
-//  if (rt != nrOfRecPkts) {
-//    rte_ring_enqueue_burst(mFreeRing, reinterpret_cast<void**>(packets + rt), nrOfRecPkts - rt, nullptr);
-//  }
+  auto rt = rte_ring_enqueue_burst(mRxRing, reinterpret_cast<void**>(packets), nrOfRecPkts, nullptr);
+  if (rt != nrOfRecPkts) {
+    rte_ring_enqueue_burst(mFreeRing, reinterpret_cast<void**>(packets + rt), nrOfRecPkts - rt, nullptr);
+  }
 }
 
 void ReceiverTransmitter::sendPackets() {

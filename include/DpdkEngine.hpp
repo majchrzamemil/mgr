@@ -15,6 +15,7 @@ class DpdkEngine : public Engine {
   void sendPackets(Packet**, uint16_t pktCount) override;
   void freePackets(rte_ring* freeRing) const override;
  private:
+  void swapMac(rte_mbuf* packet) const;
   std::unique_ptr<DpdkDevice> mDevice;
   rte_mbuf* mRxPackets[RX_BURST_SIZE];
   // rte_mbuf* mTxPackets[TX_BURST_SIZE]; // you might check if this will work, without allocatig packets in sendPackets()

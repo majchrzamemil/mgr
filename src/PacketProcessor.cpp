@@ -1,6 +1,10 @@
 #include "../include/PacketProcessor.hpp"
 #include <iostream>
 
+//for test remove
+#include<netinet/ip.h>
+#include <arpa/inet.h>
+
 //Move somewhere
 void PacketProcessor::processPackets() {
   while (true) {
@@ -15,14 +19,15 @@ void PacketProcessor::processPackets() {
 
     Packet* txPackets[mRxBurstSize];
     uint16_t pktsToSend{0u};
-
     for (auto it{0u}; it < nrOfRecPkts; ++it) {
-      ether_hdr* etherHeader{handlePacket(rxPackets[it])};
-      if (etherHeader == nullptr) {
+      handleIpPacket(rxPackets[it]);
+
+      if (mIpHdr == nullptr) {
         std::cout <<  "ether free\n";
         //freePackets[pktsToFree++] = rxPackets[it];
         continue;
       }
+      handleTcpPacket();
       txPackets[pktsToSend++] = rxPackets[it];
 
     }
@@ -31,11 +36,28 @@ void PacketProcessor::processPackets() {
   }
 }
 
-//handle checking if correct MAC
-ether_hdr* PacketProcessor::handlePacket(Packet* packet) {
-  ether_hdr*  etherHeader  = reinterpret_cast<ether_hdr*>(packet->getData());
-  ether_addr d_addr = etherHeader->d_addr;
-  etherHeader->d_addr = etherHeader->s_addr;
-  etherHeader->s_addr = d_addr;
-  return etherHeader;
+void PacketProcessor::handleIpPacket(Packet* packet) {
+  mIpHdr = reinterpret_cast<ipv4_hdr*>(packet->getData());
+  if (mIpHdr != nullptr) {
+    uint32_t dstAddr = mIpHdr->dst_addr;
+    mIpHdr->dst_addr = mIpHdr->src_addr;
+    mIpHdr->src_addr = dstAddr;
+  }
+//  ipv4_hdr* ip = reinterpret_cast<ipv4_hdr*>(packet->getData());
+//  std::cout << "Destination adddres after swap: " << htonl(ip->dst_addr) << std::endl;
+//  struct sockaddr_in source_socket_address, dest_socket_address;
+//    iphdr *ip_packet = (struct iphdr *)packet->getData();
+////
+//    memset(&source_socket_address, 0, sizeof(source_socket_address));
+//    source_socket_address.sin_addr.s_addr = ip_packet->saddr;
+//    memset(&dest_socket_address, 0, sizeof(dest_socket_address));
+//    dest_socket_address.sin_addr.s_addr = ip_packet->daddr;
+//
+//    ip_packet->daddr = ip_packet->saddr;
+//    ip_packet->saddr = dest_socket_address.sin_addr.s_addr;
+//
+//  printf("Incoming Packet: \n");
+//  printf("Packet Size (bytes): %d\n", ntohs(ip_packet->tot_len));
+//  printf("Destination Address: %s\n", (char *)inet_ntoa(dest_socket_address.sin_addr));
+//  printf("Identification: %d\n\n", ntohs(ip_packet->id));
 }
