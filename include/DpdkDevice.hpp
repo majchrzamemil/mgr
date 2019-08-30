@@ -3,32 +3,24 @@
 
 #include <rte_mbuf.h>
 #include <rte_mempool.h>
+#include <rte_ether.h>
 
 #include <cstdint>
 #include <string>
 #include <array>
+
 #include <sys/socket.h>
 #include <netinet/ip.h>
 
-using MacAddress = std::array<uint8_t, 6>;
-
-constexpr uint16_t RX_BURST_SIZE{64u};
-constexpr uint16_t TX_BURST_SIZE{32u};
-
 class DpdkDevice {
  public:
-  DpdkDevice(const uint8_t portId, const std::string& pciAddr, const uint32_t mBufPollSize,
-             const uint16_t memPoolCashSize, const uint8_t memPoolFlags);
+  DpdkDevice(const uint8_t portId, const uint32_t mBufPollSize,
+             const uint16_t memPoolCashSize, const uint8_t memPoolFlags, uint16_t rxBurstSize, uint16_t txBurstSize);
   [[nodiscard]] uint8_t getDeviceId() const {
     return mPortId;
   }
-
-  [[nodiscard]]MacAddress getMacAddress() const {
+  [[nodiscard]]ether_addr getMacAddress() const {
     return mMacAddress;
-  }
-
-  [[nodiscard]] std::string getPciAddress() const {
-    return mPciAddress;
   }
 
   [[nodiscard]] rte_mempool* getMempool() const {
@@ -38,9 +30,8 @@ class DpdkDevice {
 
   bool setIpAddr(std::string &ipStr);
  private:
-  std::string mPciAddress;
+  ether_addr mMacAddress;
   uint8_t mPortId;
-  MacAddress mMacAddress;
   rte_mempool* mMemPool;
   in_addr mIpAddr;
 };

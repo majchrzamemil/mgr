@@ -9,24 +9,31 @@
 #include <memory>
 #include <iostream>
 
-bool DpdkEngine::init(int dpdkArgc, char** dpdkArgv) {
-  Engine::init(dpdkArgc, dpdkArgv);
+bool DpdkEngine::init(int dpdkArgc, char** dpdkArgv, const EngineConfig& config) {
+  Engine::init(dpdkArgc, dpdkArgv, config);
+
+  mTxBurstSize = config.txBurstSize;
+  mRxBurstSize = config.rxBurstSize;
+
+  //free it somewhere
+  mRxPackets = new rte_mbuf*[mRxBurstSize];
 
   auto numOfPorts = rte_eth_dev_count_avail();
   if (numOfPorts == 1u) {
-    mDevice = std::make_unique<DpdkDevice>(0, std::string("dupa"), 2047u, 64, 0);
+    mDevice = std::make_unique<DpdkDevice>(config.portId, config.mBuffPoolSize, config. memPoolCashSize,
+                                           config.memPoolFlags, config.rxBurstSize, config.txBurstSize);
   }
 
   return mDevice != nullptr;
 }
 
-void DpdkEngine::startEngine() {
-  mDevice->startDevice();
+bool DpdkEngine::startEngine() {
+  return mDevice->startDevice();
 }
 
 uint16_t DpdkEngine::receivePackets(Packet** packets) {
   const auto devId = mDevice->getDeviceId();
-  auto nrOfRecPkts = rte_eth_rx_burst(devId, 0, mRxPackets, RX_BURST_SIZE);
+  auto nrOfRecPkts = rte_eth_rx_burst(devId, mQueueId, mRxPackets, mRxBurstSize);
   if (unlikely(nrOfRecPkts == 0u)) {
     return 0u;
   }
@@ -37,17 +44,17 @@ uint16_t DpdkEngine::receivePackets(Packet** packets) {
 
   return nrOfRecPkts;
 }
-void DpdkEngine::sendPackets(Packet** packets, uint16_t pktCount) {
-  rte_mbuf* mBufsToSend[TX_BURST_SIZE];
-//for now, on ring should be more than TX_BURST_SIZE
-  pktCount = pktCount > TX_BURST_SIZE ? TX_BURST_SIZE : pktCount;
+bool DpdkEngine::sendPackets(Packet** packets, uint16_t pktCount) {
+  rte_mbuf* mBufsToSend[mTxBurstSize];
+
+  pktCount = pktCount > mTxBurstSize ? mTxBurstSize : pktCount;
   for (auto it{0u}; it < pktCount; ++it) {
     mBufsToSend[it] = packets[it]->getMBuf();
     swapMac(mBufsToSend[it]);
     delete packets[it];
   }
   //create some constant for queuId
-  auto nrSentPkts = rte_eth_tx_burst(mDevice->getDeviceId(), 0, mBufsToSend, pktCount);
+  auto nrSentPkts = rte_eth_tx_burst(mDevice->getDeviceId(), mQueueId, mBufsToSend, pktCount);
 
   if (nrSentPkts != pktCount) {
     for (auto it{nrSentPkts}; it < pktCount; ++it) {
@@ -58,13 +65,15 @@ void DpdkEngine::sendPackets(Packet** packets, uint16_t pktCount) {
 }
 
 void DpdkEngine::freePackets(rte_ring* freeRing) const {
-  Packet* packets[TX_BURST_SIZE];
-  auto nrOfPkts = rte_ring_dequeue_burst(freeRing, reinterpret_cast<void**>(packets), TX_BURST_SIZE, nullptr);
+  Packet* packets[mTxBurstSize];
+  auto nrOfPkts = rte_ring_dequeue_burst(freeRing, reinterpret_cast<void**>(packets), mTxBurstSize, nullptr);
   if (nrOfPkts == 0u) {
     return;
   }
   for (auto it{0u}; it < nrOfPkts; ++it) {
     rte_pktmbuf_free(packets[it]->getMBuf());
+    std::cout <<"free";
+    delete packets[it];
   }
 }
 

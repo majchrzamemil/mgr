@@ -36,19 +36,23 @@ int
 main(int argc, char **argv) {
   unsigned lcore_id;
 
-  std::unique_ptr<Engine> engine = std::make_unique<DpdkEngine>();
+  std::unique_ptr<Engine> engine;
+  if(ENGINE_TYPE == EngineType::DPDK) {
+   engine = std::make_unique<DpdkEngine>();
+  } else {
+    engine = std::make_unique<SocketEngine>();
+  }
 
-//  std::unique_ptr<Engine> engine = std::make_unique<SocketEngine>();
-  engine->init(argc, argv);
+  engine->init(argc, argv, config);
 
   std::unique_ptr<rte_ring> rxRing(rte_ring_create("rxRing", RING_SIZE, SOCKET_ID_ANY, 0));
   std::unique_ptr<rte_ring> txRing(rte_ring_create("txRing", RING_SIZE, SOCKET_ID_ANY, 0));
   std::unique_ptr<rte_ring> freeRing(rte_ring_create("freeRing", RING_SIZE, SOCKET_ID_ANY, 0));
 
   std::unique_ptr<ReceiverTransmitter> rt = std::make_unique<ReceiverTransmitter>(rxRing.get(), txRing.get(),
-      freeRing.get(), engine.get());
+      freeRing.get(), engine.get(), config);
   std::unique_ptr<PacketProcessor> packetProcessor = std::make_unique<PacketProcessor>(rxRing.get(), txRing.get(),
-      freeRing.get(), RX_BURST_SIZE);
+      freeRing.get(), config.rxBurstSize);
 
   engine->startEngine();
 

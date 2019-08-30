@@ -2,10 +2,9 @@
 #include <iostream>
 
 //for test remove
-#include<netinet/ip.h>
-#include <arpa/inet.h>
+//#include<netinet/ip.h>
+//#include <arpa/inet.h>
 
-//Move somewhere
 void PacketProcessor::processPackets() {
   while (true) {
     Packet* rxPackets[mRxBurstSize];
@@ -23,8 +22,7 @@ void PacketProcessor::processPackets() {
       handleIpPacket(rxPackets[it]);
 
       if (mIpHdr == nullptr) {
-        std::cout <<  "ether free\n";
-        //freePackets[pktsToFree++] = rxPackets[it];
+        freePackets[pktsToFree++] = rxPackets[it];
         continue;
       }
       handleTcpPacket();

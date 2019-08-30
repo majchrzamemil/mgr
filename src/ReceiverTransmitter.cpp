@@ -6,8 +6,13 @@
 
 #include <iostream>
 
+
 ReceiverTransmitter::ReceiverTransmitter(rte_ring* const rxRing, rte_ring* const txRing, rte_ring* const freeRing,
-    Engine* const engine):  mEngine{engine}, mRxRing{rxRing}, mTxRing{txRing}, mFreeRing{freeRing}  {}
+    Engine* const engine, const EngineConfig& config):  mEngine{engine}, mRxRing{rxRing}, mTxRing{txRing}, mFreeRing{freeRing},
+  mRxBurstSize{config.rxBurstSize}, mTxBurstSize{config.txBurstSize}  {
+    //free it somewhere
+    rxPackets = new Packet*[mRxBurstSize]; 
+  }
 
 void ReceiverTransmitter::run() {
   while (true) {
@@ -19,7 +24,7 @@ void ReceiverTransmitter::run() {
 }
 
 void ReceiverTransmitter::receivePackets() {
-  Packet*  packets[RX_BURST_SIZE];
+  Packet*  packets[mRxBurstSize];
   auto nrOfRecPkts = mEngine->receivePackets(packets);
   if (nrOfRecPkts == 0u) {
     return;
@@ -32,8 +37,8 @@ void ReceiverTransmitter::receivePackets() {
 }
 
 void ReceiverTransmitter::sendPackets() {
-  Packet* txPackets[RX_BURST_SIZE];
-  auto nrOfRecPkts = rte_ring_dequeue_burst(mTxRing, reinterpret_cast<void**>(txPackets), RX_BURST_SIZE, nullptr);
+  Packet* txPackets[mTxBurstSize];
+  auto nrOfRecPkts = rte_ring_dequeue_burst(mTxRing, reinterpret_cast<void**>(txPackets), mTxBurstSize, nullptr);
   if (nrOfRecPkts == 0) {
     return;
   }

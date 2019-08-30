@@ -5,7 +5,7 @@
 
 class ReceiverTransmitter {
   public:
-    ReceiverTransmitter(rte_ring* const rxRing, rte_ring* const txRing, rte_ring* const freeRing, Engine* const engine);
+    ReceiverTransmitter(rte_ring* const rxRing, rte_ring* const txRing, rte_ring* const freeRing, Engine* const engine, const EngineConfig& config);
     void run();
     ~ReceiverTransmitter(){}
   private:
@@ -15,6 +15,8 @@ class ReceiverTransmitter {
     rte_ring* const mRxRing;
     rte_ring* const mTxRing;
     rte_ring* const mFreeRing;
-    Packet* rxPackets[RX_BURST_SIZE];
+    const uint16_t mRxBurstSize;
+    const uint16_t mTxBurstSize;
+    Packet** rxPackets;
 };
 #endif

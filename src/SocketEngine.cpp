@@ -3,23 +3,21 @@
 #include <arpa/inet.h>
 #include <iostream>
 #include <rte_ethdev.h>
-//for now, later create init in Engine.hpp and there init DPDK EAL
-bool SocketEngine::init([[maybe_unused]]int dpdkArgc, [[maybe_unused]]char** dpdkArgv) {
-  Engine::init(dpdkArgc, dpdkArgv);
 
-  mDevice = std::make_unique<SocketDevice>("enp0s25");
-  mDevice->setIpAddr(std::string{"192.168.1.1"});
+bool SocketEngine::init(int dpdkArgc, char** dpdkArgv, const EngineConfig& config) {
+  Engine::init(dpdkArgc, dpdkArgv, config);
+
+  mDevice = std::make_unique<SocketDevice>(config.devName);
+  mDevice->setIpAddr(config.ipAddr);
   return mDevice != nullptr;
 }
 
-//it should be bool, when starting device fails
-void SocketEngine::startEngine() {
-  mDevice->startDevice();
+bool SocketEngine::startEngine() {
+  return mDevice->startDevice();
 }
 
 uint16_t SocketEngine::receivePackets(Packet** packets) {
-  //move somewhere, think about buffer size, think about making this property
-  constexpr uint32_t bufferSize{65536u};
+
   uint8_t* pktBuffer = new uint8_t[bufferSize];
   int packetSize = recv(mDevice->getSocketDesc(), pktBuffer, bufferSize, 0);
   if (packetSize == -1) {
@@ -29,21 +27,34 @@ uint16_t SocketEngine::receivePackets(Packet** packets) {
   return 1u;
 }
 
-void SocketEngine::sendPackets(Packet** packets, [[maybe_unused]]uint16_t pktCount) {
+bool SocketEngine::sendPackets(Packet** packets, [[maybe_unused]]uint16_t pktCount) {
   sockaddr_in dst_addr;
 
   dst_addr.sin_family = AF_INET;
+  //after changing to tcp make constant for port readed from config
   dst_addr.sin_port = htons(1000);
   dst_addr.sin_addr.s_addr = reinterpret_cast<ipv4_hdr*>(packets[0u]->getData())->dst_addr;
-  //this method shouldn't be void
-  [[maybe_unused]]int rt = sendto(mDevice->getSocketDesc(), packets[0u]->getData(), packets[0u]->getDataLen(),  0,
+  
+  int rt = sendto(mDevice->getSocketDesc(), packets[0u]->getData(), packets[0u]->getDataLen(),  0,
                                   (sockaddr*)&dst_addr, sizeof(sockaddr));
- // if (rt != -1) {
- //   packets[0u]->freeData();
- // }
+
   packets[0u]->freeData();
   delete packets[0u];
+  if (rt != -1) {
+    return false;
+  }
+  return true;
 }
 
-void SocketEngine::freePackets(rte_ring*) const {
+void SocketEngine::freePackets(rte_ring* freeRing) const {
+  Packet* packets[32u];
+  auto nrOfPkts = rte_ring_dequeue_burst(freeRing, reinterpret_cast<void**>(packets), 32u, nullptr);
+  if (nrOfPkts == 0u) {
+    return;
+  }
+  for (auto it{0u}; it < nrOfPkts; ++it) {
+    std::cout <<"free";
+    packets[it]->freeData(); 
+    delete packets[it];
+  }
 }

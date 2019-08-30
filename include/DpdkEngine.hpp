@@ -9,15 +9,18 @@
 
 class DpdkEngine : public Engine {
  public:
-  bool init(int dpdkArgc, char** dpdkArgv) override;
-  void startEngine() override;
+  bool init(int dpdkArgc, char** dpdkArgv, const EngineConfig& config) override;
+  bool startEngine() override;
   uint16_t receivePackets(Packet**) override;
-  void sendPackets(Packet**, uint16_t pktCount) override;
+  bool sendPackets(Packet**, uint16_t pktCount) override;
   void freePackets(rte_ring* freeRing) const override;
  private:
+  uint16_t mRxBurstSize;
+  uint16_t mTxBurstSize;
   void swapMac(rte_mbuf* packet) const;
   std::unique_ptr<DpdkDevice> mDevice;
-  rte_mbuf* mRxPackets[RX_BURST_SIZE];
+  rte_mbuf** mRxPackets;
+  constexpr static uint16_t mQueueId{0u};
   // rte_mbuf* mTxPackets[TX_BURST_SIZE]; // you might check if this will work, without allocatig packets in sendPackets()
 };
 #endif
