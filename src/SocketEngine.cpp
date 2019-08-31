@@ -28,15 +28,16 @@ uint16_t SocketEngine::receivePackets(Packet** packets) {
 }
 
 bool SocketEngine::sendPackets(Packet** packets, [[maybe_unused]]uint16_t pktCount) {
-  sockaddr_in dst_addr;
-
-  dst_addr.sin_family = AF_INET;
-  //after changing to tcp make constant for port readed from config
-  dst_addr.sin_port = htons(1000);
-  dst_addr.sin_addr.s_addr = reinterpret_cast<ipv4_hdr*>(packets[0u]->getData())->dst_addr;
+  constexpr uint8_t sizeOfEthIp{sizeof(ether_hdr) + sizeof(ipv4_hdr)};
+  const uint16_t tcpPort = reinterpret_cast<tcp_hdr*>(packets[0u]->getData() + sizeOfEthIp)->dst_port;
   
+  sockaddr_in dst_addr;
+  dst_addr.sin_family = AF_INET;
+  dst_addr.sin_port = htons(tcpPort);
+  dst_addr.sin_addr.s_addr = reinterpret_cast<ipv4_hdr*>(packets[0u]->getData())->dst_addr;
+
   int rt = sendto(mDevice->getSocketDesc(), packets[0u]->getData(), packets[0u]->getDataLen(),  0,
-                                  (sockaddr*)&dst_addr, sizeof(sockaddr));
+                  (sockaddr*)&dst_addr, sizeof(sockaddr));
 
   packets[0u]->freeData();
   delete packets[0u];
@@ -53,8 +54,7 @@ void SocketEngine::freePackets(rte_ring* freeRing) const {
     return;
   }
   for (auto it{0u}; it < nrOfPkts; ++it) {
-    std::cout <<"free";
-    packets[it]->freeData(); 
+    packets[it]->freeData();
     delete packets[it];
   }
 }

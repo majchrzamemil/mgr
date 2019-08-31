@@ -5,8 +5,8 @@
 #include <sys/socket.h>
 
 bool SocketDevice::startDevice() {
-  //change later for TCP
-  mSocketDesc = socket(AF_INET, SOCK_RAW, IPPROTO_UDP);
+  
+  mSocketDesc = socket(AF_INET, SOCK_RAW, IPPROTO_TCP);
   if (mSocketDesc == -1) {
     perror("Failed to create socket");
     return false;
@@ -16,7 +16,7 @@ bool SocketDevice::startDevice() {
     perror("Failed to set device");
     return false;
   }
-  return false;
+  return true;
 
 }
 bool SocketDevice::setIpAddr(std::string ipStr) {

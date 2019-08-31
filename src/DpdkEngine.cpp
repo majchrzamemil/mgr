@@ -72,7 +72,6 @@ void DpdkEngine::freePackets(rte_ring* freeRing) const {
   }
   for (auto it{0u}; it < nrOfPkts; ++it) {
     rte_pktmbuf_free(packets[it]->getMBuf());
-    std::cout <<"free";
     delete packets[it];
   }
 }

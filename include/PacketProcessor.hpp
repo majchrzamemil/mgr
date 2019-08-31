@@ -17,8 +17,9 @@ class PacketProcessor {
   void processPackets();  //run
   ~PacketProcessor() {}
  private:
-  void handleIpPacket(Packet* packet);
-  void handleTcpPacket() {}
+  bool handleIpPacket(Packet* packet);
+  bool handleTcpPacket();
+  void swapPorts();
   void handleHttpPacket() {}
   ipv4_hdr* mIpHdr;
   tcp_hdr* mTcpHdr;

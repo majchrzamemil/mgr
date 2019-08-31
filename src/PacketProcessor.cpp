@@ -1,4 +1,6 @@
 #include "../include/PacketProcessor.hpp"
+
+#include<bitset>
 #include <iostream>
 
 //for test remove
@@ -19,13 +21,15 @@ void PacketProcessor::processPackets() {
     Packet* txPackets[mRxBurstSize];
     uint16_t pktsToSend{0u};
     for (auto it{0u}; it < nrOfRecPkts; ++it) {
-      handleIpPacket(rxPackets[it]);
-
-      if (mIpHdr == nullptr) {
+      if (handleIpPacket(rxPackets[it])) {
         freePackets[pktsToFree++] = rxPackets[it];
         continue;
       }
-      handleTcpPacket();
+      if (!handleTcpPacket()) {
+        freePackets[pktsToFree++] = rxPackets[it];
+        continue;
+      }
+
       txPackets[pktsToSend++] = rxPackets[it];
 
     }
@@ -34,28 +38,44 @@ void PacketProcessor::processPackets() {
   }
 }
 
-void PacketProcessor::handleIpPacket(Packet* packet) {
+bool PacketProcessor::handleIpPacket(Packet* packet) {
   mIpHdr = reinterpret_cast<ipv4_hdr*>(packet->getData());
+  constexpr uint8_t tcpProto{6u};
+  if (mIpHdr->next_proto_id != tcpProto) {
+    return false;
+  }
   if (mIpHdr != nullptr) {
     uint32_t dstAddr = mIpHdr->dst_addr;
     mIpHdr->dst_addr = mIpHdr->src_addr;
     mIpHdr->src_addr = dstAddr;
   }
-//  ipv4_hdr* ip = reinterpret_cast<ipv4_hdr*>(packet->getData());
-//  std::cout << "Destination adddres after swap: " << htonl(ip->dst_addr) << std::endl;
-//  struct sockaddr_in source_socket_address, dest_socket_address;
-//    iphdr *ip_packet = (struct iphdr *)packet->getData();
-////
-//    memset(&source_socket_address, 0, sizeof(source_socket_address));
-//    source_socket_address.sin_addr.s_addr = ip_packet->saddr;
-//    memset(&dest_socket_address, 0, sizeof(dest_socket_address));
-//    dest_socket_address.sin_addr.s_addr = ip_packet->daddr;
-//
-//    ip_packet->daddr = ip_packet->saddr;
-//    ip_packet->saddr = dest_socket_address.sin_addr.s_addr;
-//
-//  printf("Incoming Packet: \n");
-//  printf("Packet Size (bytes): %d\n", ntohs(ip_packet->tot_len));
-//  printf("Destination Address: %s\n", (char *)inet_ntoa(dest_socket_address.sin_addr));
-//  printf("Identification: %d\n\n", ntohs(ip_packet->id));
+  return true;
+}
+
+bool PacketProcessor::handleTcpPacket() {
+  constexpr uint8_t ipHdrSize{sizeof(ipv4_hdr)};
+  constexpr uint16_t pshFlag{0x08};
+  constexpr uint16_t ackFlag{0x10};
+  constexpr uint16_t synFlag{0x02};
+  constexpr uint16_t pshAckFlag{pshFlag | ackFlag};
+
+  mTcpHdr = reinterpret_cast<tcp_hdr*>(reinterpret_cast<uint8_t*>(mIpHdr) + ipHdrSize);
+
+  //PSH and ACK handle HTTP
+  if (!(mTcpHdr->tcp_flags ^ pshAckFlag)) {
+    handleHttpPacket();
+  } else if (!(mTcpHdr->tcp_flags ^ synFlag)) { // SYN, send back SYN and ACK
+    mTcpHdr->tcp_flags |= ackFlag;
+    ++mTcpHdr->recv_ack;
+  } else { //discard other packets, no support for now
+    return false; 
+  }
+  swapPorts();
+  return true;
+}
+
+void PacketProcessor::swapPorts() {
+  const uint16_t dst_port{mTcpHdr->dst_port};
+  mTcpHdr->dst_port = mTcpHdr->src_port;
+  mTcpHdr->src_port = dst_port;
 }
