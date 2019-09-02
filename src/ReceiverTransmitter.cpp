@@ -29,7 +29,6 @@ void ReceiverTransmitter::receivePackets() {
   if (nrOfRecPkts == 0u) {
     return;
   }
-
   auto rt = rte_ring_enqueue_burst(mRxRing, reinterpret_cast<void**>(packets), nrOfRecPkts, nullptr);
   if (rt != nrOfRecPkts) {
     rte_ring_enqueue_burst(mFreeRing, reinterpret_cast<void**>(packets + rt), nrOfRecPkts - rt, nullptr);

@@ -7,7 +7,6 @@
 
 #include <memory>
 
-#include "Http.hpp"
 #include "Engine.hpp"
 
 class PacketProcessor {
@@ -19,11 +18,12 @@ class PacketProcessor {
  private:
   bool handleIpPacket(Packet* packet);
   bool handleTcpPacket();
+  bool isHttpNextLayer(); 
   void swapPorts();
-  void handleHttpPacket() {}
+  void handleHttpPacket();
+  Packet* mPacket;
   ipv4_hdr* mIpHdr;
   tcp_hdr* mTcpHdr;
-  Http* mHttp;
 
   rte_ring* mRxRing;
   rte_ring* mTxRing;

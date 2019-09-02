@@ -3,6 +3,7 @@
 #include<bitset>
 #include <iostream>
 
+#include "../include/HttpParser.hpp"
 //for test remove
 //#include<netinet/ip.h>
 //#include <arpa/inet.h>
@@ -17,11 +18,12 @@ void PacketProcessor::processPackets() {
     if (nrOfRecPkts == 0) {
       continue;
     }
-
     Packet* txPackets[mRxBurstSize];
     uint16_t pktsToSend{0u};
     for (auto it{0u}; it < nrOfRecPkts; ++it) {
-      if (handleIpPacket(rxPackets[it])) {
+      //cleanup later
+      mPacket = rxPackets[it];
+      if (!handleIpPacket(rxPackets[it])) {
         freePackets[pktsToFree++] = rxPackets[it];
         continue;
       }
@@ -29,6 +31,7 @@ void PacketProcessor::processPackets() {
         freePackets[pktsToFree++] = rxPackets[it];
         continue;
       }
+//      std::cout << rxPackets[it]->getData() + sizeof(ipv4_hdr) + sizeof(tcp_hdr) << std::endl;
 
       txPackets[pktsToSend++] = rxPackets[it];
 
@@ -63,6 +66,9 @@ bool PacketProcessor::handleTcpPacket() {
 
   //PSH and ACK handle HTTP
   if (!(mTcpHdr->tcp_flags ^ pshAckFlag)) {
+    if(!isHttpNextLayer()){
+      return false; 
+    }
     handleHttpPacket(); // check if HTTP next header
   } else if (!(mTcpHdr->tcp_flags ^ synFlag)) { // SYN, send back SYN and ACK
     mTcpHdr->tcp_flags |= ackFlag;
@@ -78,4 +84,14 @@ void PacketProcessor::swapPorts() {
   const uint16_t dst_port{mTcpHdr->dst_port};
   mTcpHdr->dst_port = mTcpHdr->src_port;
   mTcpHdr->src_port = dst_port;
+}
+
+bool PacketProcessor::isHttpNextLayer() {
+  return true;
+}
+
+void PacketProcessor::handleHttpPacket() {
+    uint8_t* payload = mPacket->getData() + sizeof(ipv4_hdr) + sizeof(tcp_hdr);
+    HttpRequest request = HttpParser::parseRequest(reinterpret_cast<char*>(payload));
+    std::cout << "URI: " <<request.getUri() << std::endl;
 }
