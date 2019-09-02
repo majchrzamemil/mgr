@@ -3,7 +3,7 @@
 
 #include <rte_mbuf.h>
 #include <rte_ether.h>
-//think about getters, and descrution
+
 class Packet {
  public:
   Packet(uint8_t* data, size_t dataLen) : mIpOffset{0u}, mData{data}, mDataLen{dataLen}, mbuf{nullptr} {}

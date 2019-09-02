@@ -63,7 +63,7 @@ bool PacketProcessor::handleTcpPacket() {
 
   //PSH and ACK handle HTTP
   if (!(mTcpHdr->tcp_flags ^ pshAckFlag)) {
-    handleHttpPacket();
+    handleHttpPacket(); // check if HTTP next header
   } else if (!(mTcpHdr->tcp_flags ^ synFlag)) { // SYN, send back SYN and ACK
     mTcpHdr->tcp_flags |= ackFlag;
     ++mTcpHdr->recv_ack;
