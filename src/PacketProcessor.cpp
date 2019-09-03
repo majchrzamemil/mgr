@@ -9,37 +9,71 @@
 //#include<netinet/ip.h>
 //#include <arpa/inet.h>
 
-void PacketProcessor::processPackets() {
-  while (true) {
-    Packet* rxPackets[mRxBurstSize];
-    Packet* freePackets[mRxBurstSize];
-    uint16_t pktsToFree{0u};
-    auto nrOfRecPkts = rte_ring_dequeue_burst(mRxRing, reinterpret_cast<void**>(&rxPackets), mRxBurstSize, nullptr);
-
-    if (nrOfRecPkts == 0) {
-      continue;
-    }
-    Packet* txPackets[mRxBurstSize];
-    uint16_t pktsToSend{0u};
-    for (auto it{0u}; it < nrOfRecPkts; ++it) {
-      //cleanup later
-      mPacket = rxPackets[it];
-      if (!handleIpPacket(rxPackets[it])) {
-        freePackets[pktsToFree++] = rxPackets[it];
-        continue;
-      }
-      if (!handleTcpPacket()) {
-        freePackets[pktsToFree++] = rxPackets[it];
-        continue;
-      }
-      prepareOutputIpPacket();
-      txPackets[pktsToSend++] = rxPackets[it];
-
-    }
-    rte_ring_enqueue_burst(mFreeRing, reinterpret_cast<void**>(freePackets), pktsToFree, nullptr);
-    rte_ring_enqueue_burst(mTxRing, reinterpret_cast<void**>(txPackets), pktsToSend, nullptr);
+HttpRequest* PacketProcessor::processPacket(Packet* packet) {
+  if (!handleIpPacket(packet)) {
+    return nullptr;
   }
+  mPacket = packet;
+  if (!handleTcpPacket()) {
+    return nullptr;
+  }
+  if (!isHttpNextLayer()) {
+    return nullptr;
+  }
+
+  constexpr size_t httpOffset = sizeof(ipv4_hdr) + sizeof(tcp_hdr);
+  uint8_t* payload = mPacket->getData() + httpOffset;
+  HttpRequest* request = new HttpRequest{mPacket};
+
+  HttpParser::parseRequest(reinterpret_cast<char*>(payload), request);
+  return request;
 }
+Packet* PacketProcessor::processHttpResp(HttpResponse* response) {
+  mPacket = response->getPacket();
+  constexpr size_t httpOffset = sizeof(ipv4_hdr) + sizeof(tcp_hdr);
+  uint8_t* payload = mPacket->getData() + httpOffset;
+  std::string responseString = HttpParser::parseResponse(response);
+
+  const size_t httpReqLen = mPacket->getDataLen() - httpOffset;
+  mPacket->setDataLen(mPacket->getDataLen() - httpReqLen + responseString.length());
+  strcpy(reinterpret_cast<char*>(payload), responseString.c_str());
+  
+  swapPorts();
+  prepareOutputIpPacket();
+  
+  return mPacket;
+}
+//void PacketProcessor::processPackets() {
+//  while (true) {
+//    Packet* rxPackets[mRxBurstSize];
+//    Packet* freePackets[mRxBurstSize];
+//    uint16_t pktsToFree{0u};
+//    auto nrOfRecPkts = rte_ring_dequeue_burst(mRxRing, reinterpret_cast<void**>(&rxPackets), mRxBurstSize, nullptr);
+//
+//    if (nrOfRecPkts == 0) {
+//      continue;
+//    }
+//    Packet* txPackets[mRxBurstSize];
+//    uint16_t pktsToSend{0u};
+//    for (auto it{0u}; it < nrOfRecPkts; ++it) {
+//      //cleanup later
+//      mPacket = rxPackets[it];
+//      if (!handleIpPacket(rxPackets[it])) {
+//        freePackets[pktsToFree++] = rxPackets[it];
+//        continue;
+//      }
+//      if (!handleTcpPacket()) {
+//        freePackets[pktsToFree++] = rxPackets[it];
+//        continue;
+//      }
+//      prepareOutputIpPacket();
+//      txPackets[pktsToSend++] = rxPackets[it];
+//
+//    }
+//    rte_ring_enqueue_burst(mFreeRing, reinterpret_cast<void**>(freePackets), pktsToFree, nullptr);
+//    rte_ring_enqueue_burst(mTxRing, reinterpret_cast<void**>(txPackets), pktsToSend, nullptr);
+//  }
+//}
 
 bool PacketProcessor::handleIpPacket(Packet* packet) {
   mIpHdr = reinterpret_cast<ipv4_hdr*>(packet->getData());
@@ -61,17 +95,13 @@ bool PacketProcessor::handleTcpPacket() {
 
   //PSH and ACK handle HTTP
   if (!(mTcpHdr->tcp_flags ^ pshAckFlag)) {
-    if (!isHttpNextLayer()) {
-      return false;
-    }
-    handleHttpPacket(); // check if HTTP next header
+    return true;
   } else if (!(mTcpHdr->tcp_flags ^ synFlag)) { // SYN, send back SYN and ACK
     mTcpHdr->tcp_flags |= ackFlag;
     ++mTcpHdr->recv_ack;
   } else { //discard other packets, no support for now
     return false;
   }
-  swapPorts();
   return true;
 }
 
@@ -85,19 +115,19 @@ bool PacketProcessor::isHttpNextLayer() {
   return true;
 }
 
-void PacketProcessor::handleHttpPacket() {
-  constexpr size_t httpOffset = sizeof(ipv4_hdr) + sizeof(tcp_hdr);
-  uint8_t* payload = mPacket->getData() + httpOffset;
-  HttpRequest request = HttpParser::parseRequest(reinterpret_cast<char*>(payload));
- 
-  HttpResponse response;
-  response.setResponseType(ResponseType::OK);
-  response.setResponseVersion(request.getRequestVersion());
-  std::string responseString = HttpParser::parseResponse(response);
-  
-  const size_t httpReqLen = mPacket->getDataLen() - httpOffset;
-  mPacket->setDataLen(mPacket->getDataLen() - httpReqLen + responseString.length());
-  strcpy(reinterpret_cast<char*>(payload), responseString.c_str());
+
+//MOVE TO HTTP SEVER
+void PacketProcessor::handleHttpRequest() {
+
+  //move to http server!!!!
+//  HttpResponse response;
+//  response.setResponseType(ResponseType::OK);
+////  response.setResponseVersion(request.getRequestVersion());
+//  std::string responseString = HttpParser::parseResponse(response);
+
+//  const size_t httpReqLen = mPacket->getDataLen() - httpOffset;
+//  mPacket->setDataLen(mPacket->getDataLen() - httpReqLen + responseString.length());
+//  strcpy(reinterpret_cast<char*>(payload), responseString.c_str());
 }
 
 void PacketProcessor::prepareOutputIpPacket() {

@@ -8,19 +8,22 @@
 #include <memory>
 
 #include "Engine.hpp"
+#include "HttpRequest.hpp"
+#include "HttpResponse.hpp"
 
 class PacketProcessor {
  public:
-  PacketProcessor(rte_ring* rxRing, rte_ring* txRing, rte_ring* freeRing, uint16_t rxBurstSize): mRxRing{rxRing}, mTxRing{txRing},
-    mFreeRing{freeRing}, mRxBurstSize{rxBurstSize} {}
-  void processPackets();  //run
+   PacketProcessor() = default; 
+   HttpRequest* processPacket(Packet* packet);
+   Packet* processHttpResp(HttpResponse* response);
   ~PacketProcessor() {}
  private:
   bool handleIpPacket(Packet* packet);
   bool handleTcpPacket();
   bool isHttpNextLayer(); 
   void swapPorts();
-  void handleHttpPacket();
+  void handleHttpRequest();
+  void handleHttpResponse();
   void prepareOutputIpPacket();
   Packet* mPacket;
   ipv4_hdr* mIpHdr;

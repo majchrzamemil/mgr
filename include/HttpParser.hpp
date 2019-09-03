@@ -9,8 +9,8 @@
 
 class HttpParser {
  public:
-  static HttpRequest parseRequest(char* data);
-  static std::string parseResponse(const HttpResponse& response);
+  static void parseRequest(char* data, HttpRequest* request);
+  static std::string parseResponse(HttpResponse* response);
  private:
   static std::unordered_map<std::string, RequestType> mRequestTypes;
   static std::unordered_map<ResponseType, std::string> mResponseTypes;

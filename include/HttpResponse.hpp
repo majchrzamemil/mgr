@@ -3,6 +3,8 @@
 #include <string>
 #include <cstdint>
 
+#include "Packet.hpp"
+
 enum ResponseType {
   OK = 200,
   NOT_FOUND = 404
@@ -10,7 +12,7 @@ enum ResponseType {
 
 class HttpResponse {
  public:
-  HttpResponse() = default;
+  HttpResponse(Packet* packet): mPacket{packet} {};
   void setResponseType(const ResponseType responseType) {
     mResponseType = responseType;
   }
@@ -29,7 +31,12 @@ class HttpResponse {
   std::string getPayload() const {
     return mPayload;
   }
+  Packet* getPacket() const {
+    return mPacket;
+  }
+  ~HttpResponse() {}
  private:
+  Packet* mPacket;
   ResponseType mResponseType;
   std::string mResponseVersion;
   std::string mPayload;
