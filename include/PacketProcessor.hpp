@@ -21,6 +21,7 @@ class PacketProcessor {
   bool isHttpNextLayer(); 
   void swapPorts();
   void handleHttpPacket();
+  void prepareOutputIpPacket();
   Packet* mPacket;
   ipv4_hdr* mIpHdr;
   tcp_hdr* mTcpHdr;

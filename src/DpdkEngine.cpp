@@ -51,9 +51,16 @@ bool DpdkEngine::sendPackets(Packet** packets, uint16_t pktCount) {
   for (auto it{0u}; it < pktCount; ++it) {
     mBufsToSend[it] = packets[it]->getMBuf();
     swapMac(mBufsToSend[it]);
+    const size_t mBufDataLen{packets[it]->getMBuf()->data_len};
+    const size_t packetDataLen{packets[it]->getDataLen() + sizeof(ether_hdr)};
+    if(mBufDataLen < packetDataLen) {
+      rte_pktmbuf_append(mBufsToSend[it], packetDataLen - mBufDataLen);
+    }else if(mBufDataLen > packetDataLen) {
+      rte_pktmbuf_trim(mBufsToSend[it], mBufDataLen - packetDataLen);
+    }
     delete packets[it];
   }
-  //create some constant for queuId
+  
   auto nrSentPkts = rte_eth_tx_burst(mDevice->getDeviceId(), mQueueId, mBufsToSend, pktCount);
 
   if (nrSentPkts != pktCount) {

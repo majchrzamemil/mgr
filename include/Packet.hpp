@@ -8,7 +8,7 @@ class Packet {
  public:
   Packet(uint8_t* data, size_t dataLen) : mIpOffset{0u}, mData{data}, mDataLen{dataLen}, mbuf{nullptr} {}
   Packet(rte_mbuf* buf): mIpOffset{mEthSize}, mData{static_cast<uint8_t*>(buf->buf_addr) + buf->data_off},
-    mDataLen{buf->data_len},
+    mDataLen{buf->data_len - mEthSize},
     mbuf{buf} {}
   rte_mbuf* getMBuf() const {
     return mbuf;
@@ -22,9 +22,10 @@ class Packet {
   size_t getDataLen() const {
     return mDataLen;
   }
+  void setDataLen(size_t dataLen) { mDataLen = dataLen;}
   ~Packet() {}
  private:
-  constexpr static uint16_t mEthSize{sizeof(ether_hdr)};
+  constexpr static size_t mEthSize{sizeof(ether_hdr)};
   const uint16_t mIpOffset;
   uint8_t* mData;
   size_t mDataLen;

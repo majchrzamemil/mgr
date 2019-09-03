@@ -2,6 +2,7 @@
 
 #include<bitset>
 #include <iostream>
+#include <cstring>
 
 #include "../include/HttpParser.hpp"
 //for test remove
@@ -31,8 +32,7 @@ void PacketProcessor::processPackets() {
         freePackets[pktsToFree++] = rxPackets[it];
         continue;
       }
-//      std::cout << rxPackets[it]->getData() + sizeof(ipv4_hdr) + sizeof(tcp_hdr) << std::endl;
-
+      prepareOutputIpPacket();
       txPackets[pktsToSend++] = rxPackets[it];
 
     }
@@ -46,11 +46,6 @@ bool PacketProcessor::handleIpPacket(Packet* packet) {
   constexpr uint8_t tcpProto{6u};
   if (mIpHdr->next_proto_id != tcpProto) {
     return false;
-  }
-  if (mIpHdr != nullptr) {
-    uint32_t dstAddr = mIpHdr->dst_addr;
-    mIpHdr->dst_addr = mIpHdr->src_addr;
-    mIpHdr->src_addr = dstAddr;
   }
   return true;
 }
@@ -66,15 +61,15 @@ bool PacketProcessor::handleTcpPacket() {
 
   //PSH and ACK handle HTTP
   if (!(mTcpHdr->tcp_flags ^ pshAckFlag)) {
-    if(!isHttpNextLayer()){
-      return false; 
+    if (!isHttpNextLayer()) {
+      return false;
     }
     handleHttpPacket(); // check if HTTP next header
   } else if (!(mTcpHdr->tcp_flags ^ synFlag)) { // SYN, send back SYN and ACK
     mTcpHdr->tcp_flags |= ackFlag;
     ++mTcpHdr->recv_ack;
   } else { //discard other packets, no support for now
-    return false; 
+    return false;
   }
   swapPorts();
   return true;
@@ -91,7 +86,25 @@ bool PacketProcessor::isHttpNextLayer() {
 }
 
 void PacketProcessor::handleHttpPacket() {
-    uint8_t* payload = mPacket->getData() + sizeof(ipv4_hdr) + sizeof(tcp_hdr);
-    HttpRequest request = HttpParser::parseRequest(reinterpret_cast<char*>(payload));
-    std::cout << "URI: " <<request.getUri() << std::endl;
+  constexpr size_t httpOffset = sizeof(ipv4_hdr) + sizeof(tcp_hdr);
+  uint8_t* payload = mPacket->getData() + httpOffset;
+  HttpRequest request = HttpParser::parseRequest(reinterpret_cast<char*>(payload));
+ 
+  HttpResponse response;
+  response.setResponseType(ResponseType::OK);
+  response.setResponseVersion(request.getRequestVersion());
+  std::string responseString = HttpParser::parseResponse(response);
+  
+  const size_t httpReqLen = mPacket->getDataLen() - httpOffset;
+  mPacket->setDataLen(mPacket->getDataLen() - httpReqLen + responseString.length());
+  strcpy(reinterpret_cast<char*>(payload), responseString.c_str());
+}
+
+void PacketProcessor::prepareOutputIpPacket() {
+  if (mIpHdr != nullptr) {
+    uint32_t dstAddr = mIpHdr->dst_addr;
+    mIpHdr->dst_addr = mIpHdr->src_addr;
+    mIpHdr->src_addr = dstAddr;
+    mIpHdr->total_length = htons(mPacket->getDataLen());
+  }
 }

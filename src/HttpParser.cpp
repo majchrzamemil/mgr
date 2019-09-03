@@ -8,6 +8,8 @@
 
 std::unordered_map<std::string, RequestType> HttpParser::mRequestTypes{ {"GET", RequestType::GET} };
 
+std::unordered_map<ResponseType, std::string> HttpParser::mResponseTypes{ {ResponseType::OK, "OK"} };
+
 HttpRequest HttpParser::parseRequest(char* data) {
   constexpr char  delim = ' ';
   constexpr uint8_t requestTypeIndex{0u};
@@ -28,7 +30,25 @@ HttpRequest HttpParser::parseRequest(char* data) {
     request.setRequestType(RequestType::NOT_REQUEST);
     return request;
   }
+  //add validation
   request.setUri(tokens[uriIndex]);
+  //also add validation
+  request.setRequestVersion(tokens[2]);
 
   return request;
+}
+
+std::string HttpParser::parseResponse(const HttpResponse& response) {
+  std::string responseString {};
+  constexpr char delim = ' ';
+  responseString += response.getResponseVersion() + delim;
+  if (auto respType = mResponseTypes.find(response.getResponseType()); respType != mResponseTypes.end()) {
+    responseString += respType->second + delim;
+  } else {
+    return ""; 
+  }
+  responseString += std::to_string(response.getResponseType()) + delim;
+  responseString += "\r\n ";
+  responseString += response.getPayload();
+  return responseString;
 }

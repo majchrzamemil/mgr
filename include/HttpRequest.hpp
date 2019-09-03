@@ -17,6 +17,8 @@ class HttpRequest {
     RequestType getRequestType() const { return mRequestType;} 
     void setUri(const std::string& uri) { mUri=uri;}
     std::string getUri() const { return mUri;}
+    std::string getRequestVersion() const { return mRequestVersion;}
+    void setRequestVersion(const std::string& requestVersion) { mRequestVersion = requestVersion;}
   private:
     RequestType mRequestType;
     std::string mRequestVersion;
