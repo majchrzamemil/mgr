@@ -5,6 +5,8 @@
 
 #include "Engine.hpp"
 
+#include <rte_mempool.h>
+
 enum class EngineType {
   SOCKET,
   DPDK
@@ -18,13 +20,13 @@ constexpr EngineType ENGINE_TYPE{EngineType::DPDK};
 
 const EngineConfig config{
   .portId = 0u,
-  .mBuffPoolSize = 2047u,
-  .memPoolCashSize = 64u,
-  .memPoolFlags = 0u,
+  .mBuffPoolSize = 4095u,
+  .memPoolCashSize = 128u,
+  .memPoolFlags = MEMPOOL_F_SP_PUT | MEMPOOL_F_SC_GET,
   .ipAddr = std::string{"192.168.1.1"},
   .tcpPort = 8080u,
-  .txBurstSize = 32u,
-  .rxBurstSize = 64u,
+  .txBurstSize = 512u,
+  .rxBurstSize = 128u,
   .devName=std::string{"enp0s25"}
 };
 #endif
