@@ -54,7 +54,8 @@ bool DpdkEngine::sendPackets(Packet** packets, uint16_t pktCount) {
     const size_t mBufDataLen{packets[it]->getMBuf()->data_len};
     const size_t packetDataLen{packets[it]->getDataLen() + sizeof(ether_hdr)};
     if(mBufDataLen < packetDataLen) {
-      rte_pktmbuf_append(mBufsToSend[it], packetDataLen - mBufDataLen);
+     [[maybe_unused]] auto ret = rte_pktmbuf_append(mBufsToSend[it], packetDataLen - mBufDataLen);
+//      std::cout << "ret: " << ret << "appended: " << packetDataLen - mBufDataLen << "packet data len: " << packetDataLen << std::endl;
     }else if(mBufDataLen > packetDataLen) {
       rte_pktmbuf_trim(mBufsToSend[it], mBufDataLen - packetDataLen);
     }

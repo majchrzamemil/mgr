@@ -17,7 +17,9 @@
 #include "../include/Config.hpp"
 #include "../include/DpdkEngine.hpp"
 #include "../include/SocketEngine.hpp"
+
 #include "../include/HttpServer.hpp"
+#include "../include/DummyEndpoint.hpp"
 
 //for now
 int runRT(void *arg) {
@@ -31,11 +33,6 @@ int runHttpServer(void *arg) {
   server->run();
   return 0;
 }
-//int runPacketProcessor(void * arg) {
-//  PacketProcessor* rt = static_cast<PacketProcessor*>(arg);
-//  rt->processPackets();
-//  return 0;
-//}
 
 int
 main(int argc, char **argv) {
@@ -63,6 +60,11 @@ main(int argc, char **argv) {
   std::unique_ptr<ReceiverTransmitter> rt = std::make_unique<ReceiverTransmitter>(rxRing.get(), txRing.get(),
      freeRing.get(), engine.get(), config);
   std::unique_ptr<HttpServer> server = std::make_unique<HttpServer>(rxRing.get(), txRing.get(), freeRing.get(), config.txBurstSize);
+
+  std::string uri{"/index.html"};
+  std::unique_ptr<HttpEndpoint> dummyEndpoint = std::make_unique<DummyEndpointGet>(uri, RequestType::GET);
+
+  server->registerHttpEndpoint(dummyEndpoint.get());
 
   engine->startEngine();
 

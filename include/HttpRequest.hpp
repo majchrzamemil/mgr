@@ -5,12 +5,12 @@
 
 #include "Packet.hpp"
 
-enum class RequestType : uint8_t {
-  NOT_REQUEST,
+enum RequestType {
   GET,
   POST,
   DELETE,
-  PUT
+  PUT,
+  NOT_REQUEST
 };
 
 class HttpRequest {
