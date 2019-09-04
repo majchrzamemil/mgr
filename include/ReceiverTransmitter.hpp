@@ -1,7 +1,10 @@
 #ifndef RECEIVER_TRANSMITTER
 #define RECEIVER_TRANSMITTER
+
+#include "PacketProcessor.hpp"
 #include "DpdkEngine.hpp"
-#include "rte_ring.h"
+
+#include <rte_ring.h>
 
 class ReceiverTransmitter {
  public:
@@ -9,7 +12,7 @@ class ReceiverTransmitter {
   ReceiverTransmitter(rte_ring* const rxRing, rte_ring* const txRing, rte_ring* const freeRing, Engine* const engine,
                       const EngineConfig& config);
   void run();
-  ~ReceiverTransmitter() {}
+  ~ReceiverTransmitter();
  private:
   void receivePackets();
   void sendPackets();

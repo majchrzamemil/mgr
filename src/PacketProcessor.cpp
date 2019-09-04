@@ -17,6 +17,7 @@ HttpRequest* PacketProcessor::processPacket(Packet* packet) {
   if (!handleTcpPacket()) {
     return nullptr;
   }
+  //for now tcp syn not working, think about this
   if (!isHttpNextLayer()) {
     return nullptr;
   }
@@ -37,43 +38,14 @@ Packet* PacketProcessor::processHttpResp(HttpResponse* response) {
   const size_t httpReqLen = mPacket->getDataLen() - httpOffset;
   mPacket->setDataLen(mPacket->getDataLen() - httpReqLen + responseString.length());
   strcpy(reinterpret_cast<char*>(payload), responseString.c_str());
-  
+ 
+  //handle eth and IP
   swapPorts();
   prepareOutputIpPacket();
   
+  delete response;
   return mPacket;
 }
-//void PacketProcessor::processPackets() {
-//  while (true) {
-//    Packet* rxPackets[mRxBurstSize];
-//    Packet* freePackets[mRxBurstSize];
-//    uint16_t pktsToFree{0u};
-//    auto nrOfRecPkts = rte_ring_dequeue_burst(mRxRing, reinterpret_cast<void**>(&rxPackets), mRxBurstSize, nullptr);
-//
-//    if (nrOfRecPkts == 0) {
-//      continue;
-//    }
-//    Packet* txPackets[mRxBurstSize];
-//    uint16_t pktsToSend{0u};
-//    for (auto it{0u}; it < nrOfRecPkts; ++it) {
-//      //cleanup later
-//      mPacket = rxPackets[it];
-//      if (!handleIpPacket(rxPackets[it])) {
-//        freePackets[pktsToFree++] = rxPackets[it];
-//        continue;
-//      }
-//      if (!handleTcpPacket()) {
-//        freePackets[pktsToFree++] = rxPackets[it];
-//        continue;
-//      }
-//      prepareOutputIpPacket();
-//      txPackets[pktsToSend++] = rxPackets[it];
-//
-//    }
-//    rte_ring_enqueue_burst(mFreeRing, reinterpret_cast<void**>(freePackets), pktsToFree, nullptr);
-//    rte_ring_enqueue_burst(mTxRing, reinterpret_cast<void**>(txPackets), pktsToSend, nullptr);
-//  }
-//}
 
 bool PacketProcessor::handleIpPacket(Packet* packet) {
   mIpHdr = reinterpret_cast<ipv4_hdr*>(packet->getData());
@@ -113,21 +85,6 @@ void PacketProcessor::swapPorts() {
 
 bool PacketProcessor::isHttpNextLayer() {
   return true;
-}
-
-
-//MOVE TO HTTP SEVER
-void PacketProcessor::handleHttpRequest() {
-
-  //move to http server!!!!
-//  HttpResponse response;
-//  response.setResponseType(ResponseType::OK);
-////  response.setResponseVersion(request.getRequestVersion());
-//  std::string responseString = HttpParser::parseResponse(response);
-
-//  const size_t httpReqLen = mPacket->getDataLen() - httpOffset;
-//  mPacket->setDataLen(mPacket->getDataLen() - httpReqLen + responseString.length());
-//  strcpy(reinterpret_cast<char*>(payload), responseString.c_str());
 }
 
 void PacketProcessor::prepareOutputIpPacket() {

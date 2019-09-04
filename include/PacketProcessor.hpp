@@ -22,16 +22,9 @@ class PacketProcessor {
   bool handleTcpPacket();
   bool isHttpNextLayer(); 
   void swapPorts();
-  void handleHttpRequest();
-  void handleHttpResponse();
   void prepareOutputIpPacket();
   Packet* mPacket;
   ipv4_hdr* mIpHdr;
   tcp_hdr* mTcpHdr;
-
-  rte_ring* mRxRing;
-  rte_ring* mTxRing;
-  rte_ring* mFreeRing;
-  const uint16_t mRxBurstSize;
 };
 #endif

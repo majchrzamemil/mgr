@@ -10,9 +10,8 @@
 ReceiverTransmitter::ReceiverTransmitter(rte_ring* const rxRing, rte_ring* const txRing, rte_ring* const freeRing,
     Engine* const engine, const EngineConfig& config):  mEngine{engine}, mRxRing{rxRing}, mTxRing{txRing}, mFreeRing{freeRing},
   mRxBurstSize{config.rxBurstSize}, mTxBurstSize{config.txBurstSize}  {
-    //free it somewhere
-    rxPackets = new Packet*[mRxBurstSize]; 
-  }
+  rxPackets = new Packet*[mRxBurstSize];
+}
 
 void ReceiverTransmitter::run() {
   while (true) {
@@ -25,21 +24,48 @@ void ReceiverTransmitter::run() {
 
 void ReceiverTransmitter::receivePackets() {
   Packet*  packets[mRxBurstSize];
+  HttpRequest* requests[mRxBurstSize];
+  uint16_t requestsToEnqueue{0u};
   auto nrOfRecPkts = mEngine->receivePackets(packets);
   if (nrOfRecPkts == 0u) {
     return;
   }
-  auto rt = rte_ring_enqueue_burst(mRxRing, reinterpret_cast<void**>(packets), nrOfRecPkts, nullptr);
-  if (rt != nrOfRecPkts) {
-    rte_ring_enqueue_burst(mFreeRing, reinterpret_cast<void**>(packets + rt), nrOfRecPkts - rt, nullptr);
+  for (auto it{0u}; it < nrOfRecPkts; ++it) {
+    if (HttpRequest* request = mPacketProcessor.processPacket(packets[it])) {
+      requests[requestsToEnqueue++] = request;
+    } else {
+      rte_ring_enqueue(mFreeRing, packets[it]);
+    }
+
+  }
+  auto rt = rte_ring_enqueue_burst(mRxRing, reinterpret_cast<void**>(requests), requestsToEnqueue, nullptr);
+  if (rt != requestsToEnqueue) {
+    //foreach HttpRequest, enqueue packet from request
+//    rte_ring_enqueue_burst(mFreeRing, reinterpret_cast<void**>(packets + rt), nrOfRecPkts - rt, nullptr);
   }
 }
 
 void ReceiverTransmitter::sendPackets() {
   Packet* txPackets[mTxBurstSize];
-  auto nrOfRecPkts = rte_ring_dequeue_burst(mTxRing, reinterpret_cast<void**>(txPackets), mTxBurstSize, nullptr);
+  HttpResponse* responses[mTxBurstSize];
+  uint16_t packetsToSend{0u};
+
+  auto nrOfRecPkts = rte_ring_dequeue_burst(mTxRing, reinterpret_cast<void**>(responses), mTxBurstSize, nullptr);
+
   if (nrOfRecPkts == 0) {
     return;
   }
+  for (auto it{0u}; it < nrOfRecPkts; ++it) {
+    if (Packet* packet = mPacketProcessor.processHttpResp(responses[it])) {
+      txPackets[packetsToSend++] = packet;
+    } else {
+      rte_ring_enqueue(mFreeRing, responses[it]->getPacket());
+    }
+  }
+
   mEngine->sendPackets(txPackets, nrOfRecPkts);
+}
+
+ReceiverTransmitter::~ReceiverTransmitter() {
+  delete rxPackets;
 }
