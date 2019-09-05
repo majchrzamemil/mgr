@@ -16,7 +16,7 @@ RTE_SRCDIR = $(_SRC_DIR)
 RTE_OUTPUT := $(_OUTPUT_DIR)
 
 INCLUDES := -I$(INCLUDE_DIR)
-CFLAGS := -std=c++2a -O0 -g -ggdb $(INCLUDES) $(CFLAGS)
+CFLAGS := -std=c++2a -O3 -g -ggdb $(INCLUDES) $(CFLAGS)
 _TARGET_TYPE := APP
 _LDLIBS := -L/usr/lib/x86_64-linux-gnu -lpthread -lm
 LDLIBS := $(_LDLIBS) 
