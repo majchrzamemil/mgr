@@ -8,8 +8,9 @@
 
 class ReceiverTransmitter {
  public:
-   //maybe struct for rings, to many parameters
-  ReceiverTransmitter(rte_ring* const rxRing, rte_ring* const txRing, rte_ring* const freeRing, Engine* const engine,
+  //maybe struct for rings, to many parameters
+  ReceiverTransmitter(rte_ring* const rxRing, rte_ring* const txRing, rte_ring* const freeRing,
+                      Engine* const engine,
                       const EngineConfig& config);
   void run();
   ~ReceiverTransmitter();

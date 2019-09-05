@@ -10,8 +10,6 @@
 #include <rte_eal.h>
 #include <rte_per_lcore.h>
 #include <rte_lcore.h>
-#include <rte_debug.h>
-#include <rte_ethdev.h>
 
 #include "../include/ReceiverTransmitter.hpp"
 #include "../include/Config.hpp"
@@ -39,31 +37,37 @@ main(int argc, char **argv) {
   unsigned lcore_id;
 
   std::unique_ptr<Engine> engine;
-  if(ENGINE_TYPE == EngineType::DPDK) {
-   engine = std::make_unique<DpdkEngine>();
+  if (ENGINE_TYPE == EngineType::DPDK) {
+    engine = std::make_unique<DpdkEngine>();
   } else {
     engine = std::make_unique<SocketEngine>();
   }
 
-  if(!engine->init(argc, argv, config)){
-    std::cout <<"Failed to start engine!\n";
+  if (!engine->init(argc, argv, config)) {
+    std::cout << "Failed to init engine!\n";
     return -1;
   }
 
   //HttpRequest Ring
   std::unique_ptr<rte_ring> rxRing(rte_ring_create("rxRing", RING_SIZE, SOCKET_ID_ANY, 0));
-  //HttpResponse Ring 
+  //HttpResponse Ring
   std::unique_ptr<rte_ring> txRing(rte_ring_create("txRing", RING_SIZE, SOCKET_ID_ANY, 0));
   //Packet ring
   std::unique_ptr<rte_ring> freeRing(rte_ring_create("freeRing", RING_SIZE, SOCKET_ID_ANY, 0));
 
-  std::unique_ptr<ReceiverTransmitter> rt = std::make_unique<ReceiverTransmitter>(rxRing.get(), txRing.get(),
-     freeRing.get(), engine.get(), config);
-  std::unique_ptr<HttpServer> server = std::make_unique<HttpServer>(rxRing.get(), txRing.get(), freeRing.get(), config.txBurstSize);
+  //create threads
+  std::unique_ptr<ReceiverTransmitter> rt = std::make_unique<ReceiverTransmitter>(rxRing.get(),
+      txRing.get(),
+      freeRing.get(), engine.get(), config);
+  std::unique_ptr<HttpServer> server = std::make_unique<HttpServer>(rxRing.get(), txRing.get(),
+                                       freeRing.get(), config.txBurstSize);
 
+  //create HTTP endpoint
   std::string uri{"/index.html"};
-  std::unique_ptr<HttpEndpoint> dummyEndpoint = std::make_unique<DummyEndpointGet>(uri, RequestType::GET);
+  std::unique_ptr<HttpEndpoint> dummyEndpoint = std::make_unique<DummyEndpointGet>(uri,
+      RequestType::GET);
 
+  //register endpoint
   server->registerHttpEndpoint(dummyEndpoint.get());
 
   engine->startEngine();

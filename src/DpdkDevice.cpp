@@ -5,13 +5,16 @@
 #include <rte_ethdev.h>
 #include <rte_config.h>
 //split to smaller functions
-DpdkDevice::DpdkDevice(const uint8_t portId, const uint32_t mBufPollSize, const uint16_t memPoolCashSize,
+DpdkDevice::DpdkDevice(const uint8_t portId, const uint32_t mBufPollSize,
+                       const uint16_t memPoolCashSize,
                        const uint8_t memPoolFlags, uint16_t rxBurstSize, uint16_t txBurstSize) :  mPortId{portId} {
   ether_addr macAddr;
   rte_eth_macaddr_get(portId, &macAddr);
-  std::copy(std::begin(macAddr.addr_bytes), std::end(macAddr.addr_bytes), std::begin(mMacAddress.addr_bytes));
+  std::copy(std::begin(macAddr.addr_bytes), std::end(macAddr.addr_bytes),
+            std::begin(mMacAddress.addr_bytes));
   //init of mempool
-  mMemPool = rte_mempool_create_empty("mMemPool", mBufPollSize, RTE_MBUF_DEFAULT_BUF_SIZE, memPoolCashSize,
+  mMemPool = rte_mempool_create_empty("mMemPool", mBufPollSize, RTE_MBUF_DEFAULT_BUF_SIZE,
+                                      memPoolCashSize,
                                       sizeof(rte_pktmbuf_pool_private), SOCKET_ID_ANY, MEMPOOL_F_SP_PUT | MEMPOOL_F_SC_GET);
 
   std::string ringMode{"ring_sp_sc"};
@@ -40,7 +43,8 @@ DpdkDevice::DpdkDevice(const uint8_t portId, const uint32_t mBufPollSize, const 
   rte_eth_dev_configure(portId, nrOfQueues, nrOfQueues, &portConf);
 
   constexpr uint16_t queueId{0u};
-  if (auto ret = rte_eth_rx_queue_setup(portId, queueId, rxBurstSize, rte_eth_dev_socket_id(portId), nullptr,
+  if (auto ret = rte_eth_rx_queue_setup(portId, queueId, rxBurstSize, rte_eth_dev_socket_id(portId),
+                                        nullptr,
                                         mMemPool) < 0) {
     rte_exit(EXIT_FAILURE, "rte_eth_rx_queue_setup:err=%d, port=%u\n",
              ret, portId);
@@ -50,10 +54,6 @@ DpdkDevice::DpdkDevice(const uint8_t portId, const uint32_t mBufPollSize, const 
     rte_exit(EXIT_FAILURE, "rte_eth_tx_queue_setup:err=%d, port=%u\n",
              ret, portId);
   }
-//   rte_eth_stats eth_stats;
-//   auto rt = rte_eth_stats_get(0, &eth_stats);
-//  if(rt  ==0)
-//   printf("Opackets: %lu, oerrors: %lu\n", eth_stats.opackets, eth_stats.oerrors);
 }
 
 bool DpdkDevice::startDevice() const {

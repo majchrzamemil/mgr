@@ -7,15 +7,15 @@
 #include <arpa/inet.h>
 
 #include <memory>
-#include <iostream>
 
 bool DpdkEngine::init(int dpdkArgc, char** dpdkArgv, const EngineConfig& config) {
-  Engine::init(dpdkArgc, dpdkArgv, config);
+  if (!Engine::init(dpdkArgc, dpdkArgv, config)) {
+    return false;
+  }
 
   mTxBurstSize = config.txBurstSize;
   mRxBurstSize = config.rxBurstSize;
 
-  //free it somewhere
   mRxPackets = new rte_mbuf*[mRxBurstSize];
 
   auto numOfPorts = rte_eth_dev_count_avail();
@@ -51,17 +51,18 @@ bool DpdkEngine::sendPackets(Packet** packets, uint16_t pktCount) {
   for (auto it{0u}; it < pktCount; ++it) {
     mBufsToSend[it] = packets[it]->getMBuf();
     swapMac(mBufsToSend[it]);
+
     const size_t mBufDataLen{packets[it]->getMBuf()->data_len};
     const size_t packetDataLen{packets[it]->getDataLen() + sizeof(ether_hdr)};
-    if(mBufDataLen < packetDataLen) {
-     [[maybe_unused]] auto ret = rte_pktmbuf_append(mBufsToSend[it], packetDataLen - mBufDataLen);
-//      std::cout << "ret: " << ret << "appended: " << packetDataLen - mBufDataLen << "packet data len: " << packetDataLen << std::endl;
-    }else if(mBufDataLen > packetDataLen) {
+    if (mBufDataLen < packetDataLen) {
+      [[maybe_unused]] auto ret = rte_pktmbuf_append(mBufsToSend[it], packetDataLen - mBufDataLen);
+    } else if (mBufDataLen > packetDataLen) {
       rte_pktmbuf_trim(mBufsToSend[it], mBufDataLen - packetDataLen);
     }
+
     delete packets[it];
   }
-  
+
   auto nrSentPkts = rte_eth_tx_burst(mDevice->getDeviceId(), mQueueId, mBufsToSend, pktCount);
 
   if (nrSentPkts != pktCount) {
@@ -74,7 +75,8 @@ bool DpdkEngine::sendPackets(Packet** packets, uint16_t pktCount) {
 
 void DpdkEngine::freePackets(rte_ring* freeRing) const {
   Packet* packets[mTxBurstSize];
-  auto nrOfPkts = rte_ring_dequeue_burst(freeRing, reinterpret_cast<void**>(packets), mTxBurstSize, nullptr);
+  auto nrOfPkts = rte_ring_dequeue_burst(freeRing, reinterpret_cast<void**>(packets), mTxBurstSize,
+                                         nullptr);
   if (nrOfPkts == 0u) {
     return;
   }
@@ -89,4 +91,8 @@ void DpdkEngine::swapMac(rte_mbuf* packet) const {
   ether_addr d_addr = etherHeader->d_addr;
   etherHeader->d_addr = etherHeader->s_addr;
   etherHeader->s_addr = d_addr;
+}
+
+DpdkEngine::~DpdkEngine() {
+  delete *mRxPackets;
 }

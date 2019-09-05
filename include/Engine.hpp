@@ -26,8 +26,6 @@ class Engine {
   virtual bool sendPackets(Packet**, const uint16_t pktCount) = 0;
   virtual bool init(int dpdkArgc, char** dpdkArgv, const EngineConfig& config);
   virtual void freePackets(rte_ring* freeRing) const = 0;
- protected:
-  //move to cpp
-  //what should be here??
+  virtual ~Engine() = default;
 };
 #endif

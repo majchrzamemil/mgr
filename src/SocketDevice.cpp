@@ -5,14 +5,15 @@
 #include <sys/socket.h>
 
 bool SocketDevice::startDevice() {
-  
+
   mSocketDesc = socket(AF_INET, SOCK_RAW, IPPROTO_TCP);
   if (mSocketDesc == -1) {
     perror("Failed to create socket");
     return false;
   }
 
-  if (setsockopt(mSocketDesc, SOL_SOCKET, SO_BINDTODEVICE, mDevName.c_str(), strlen(mDevName.c_str())) == -1) {
+  if (setsockopt(mSocketDesc, SOL_SOCKET, SO_BINDTODEVICE, mDevName.c_str(),
+                 strlen(mDevName.c_str())) == -1) {
     perror("Failed to set device");
     return false;
   }

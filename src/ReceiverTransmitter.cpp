@@ -7,8 +7,10 @@
 #include <iostream>
 
 
-ReceiverTransmitter::ReceiverTransmitter(rte_ring* const rxRing, rte_ring* const txRing, rte_ring* const freeRing,
-    Engine* const engine, const EngineConfig& config):  mEngine{engine}, mRxRing{rxRing}, mTxRing{txRing}, mFreeRing{freeRing},
+ReceiverTransmitter::ReceiverTransmitter(rte_ring* const rxRing, rte_ring* const txRing,
+    rte_ring* const freeRing,
+    Engine* const engine, const EngineConfig& config):  mEngine{engine}, mRxRing{rxRing}, mTxRing{txRing},
+  mFreeRing{freeRing},
   mRxBurstSize{config.rxBurstSize}, mTxBurstSize{config.txBurstSize}  {
   rxPackets = new Packet*[mRxBurstSize];
 }
@@ -31,17 +33,20 @@ void ReceiverTransmitter::receivePackets() {
     return;
   }
   for (auto it{0u}; it < nrOfRecPkts; ++it) {
-    if (HttpRequest* request = mPacketProcessor.processPacket(packets[it])) {
+    if (auto* request = mPacketProcessor.processPacket(packets[it])){
       requests[requestsToEnqueue++] = request;
     } else {
       rte_ring_enqueue(mFreeRing, packets[it]);
     }
 
   }
-  auto rt = rte_ring_enqueue_burst(mRxRing, reinterpret_cast<void**>(requests), requestsToEnqueue, nullptr);
+  auto rt = rte_ring_enqueue_burst(mRxRing, reinterpret_cast<void**>(requests), requestsToEnqueue,
+                                   nullptr);
   if (rt != requestsToEnqueue) {
-    //foreach HttpRequest, enqueue packet from request
-//    rte_ring_enqueue_burst(mFreeRing, reinterpret_cast<void**>(packets + rt), nrOfRecPkts - rt, nullptr);
+    for (auto it{rt}; it < requestsToEnqueue; ++it) {
+      rte_ring_enqueue(mFreeRing, requests[it]->getPacket());
+      delete requests[it];
+    }
   }
 }
 
@@ -50,7 +55,8 @@ void ReceiverTransmitter::sendPackets() {
   HttpResponse* responses[mTxBurstSize];
   uint16_t packetsToSend{0u};
 
-  auto nrOfRecPkts = rte_ring_dequeue_burst(mTxRing, reinterpret_cast<void**>(responses), mTxBurstSize, nullptr);
+  auto nrOfRecPkts = rte_ring_dequeue_burst(mTxRing, reinterpret_cast<void**>(responses),
+                     mTxBurstSize, nullptr);
 
   if (nrOfRecPkts == 0) {
     return;
@@ -62,7 +68,6 @@ void ReceiverTransmitter::sendPackets() {
       rte_ring_enqueue(mFreeRing, responses[it]->getPacket());
     }
   }
-
   mEngine->sendPackets(txPackets, nrOfRecPkts);
 }
 

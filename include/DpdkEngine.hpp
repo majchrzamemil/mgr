@@ -14,6 +14,7 @@ class DpdkEngine : public Engine {
   [[nodiscard]]uint16_t receivePackets(Packet**) override;
   bool sendPackets(Packet**, uint16_t pktCount) override;
   void freePackets(rte_ring* freeRing) const override;
+  ~DpdkEngine();
  private:
   uint16_t mRxBurstSize;
   uint16_t mTxBurstSize;

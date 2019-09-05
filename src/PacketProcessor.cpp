@@ -1,13 +1,7 @@
 #include "../include/PacketProcessor.hpp"
-
-#include<bitset>
-#include <iostream>
-#include <cstring>
-
 #include "../include/HttpParser.hpp"
-//for test remove
-//#include<netinet/ip.h>
-//#include <arpa/inet.h>
+
+#include <cstring>
 
 HttpRequest* PacketProcessor::processPacket(Packet* packet) {
   if (!handleIpPacket(packet)) {
@@ -17,7 +11,9 @@ HttpRequest* PacketProcessor::processPacket(Packet* packet) {
   if (!handleTcpPacket()) {
     return nullptr;
   }
-  //for now tcp syn not working, think about this
+ 
+  //for now TCP SYN not working, dropped in HttpServer
+  //if needed make handle* public and add validation in RT
   if (!isHttpNextLayer()) {
     return nullptr;
   }
@@ -29,6 +25,7 @@ HttpRequest* PacketProcessor::processPacket(Packet* packet) {
   HttpParser::parseRequest(reinterpret_cast<char*>(payload), request);
   return request;
 }
+
 Packet* PacketProcessor::processHttpResp(HttpResponse* response) {
   mPacket = response->getPacket();
   constexpr size_t httpOffset = sizeof(ipv4_hdr) + sizeof(tcp_hdr);
@@ -38,11 +35,11 @@ Packet* PacketProcessor::processHttpResp(HttpResponse* response) {
   const size_t httpReqLen = mPacket->getDataLen() - httpOffset;
   mPacket->setDataLen(mPacket->getDataLen() - httpReqLen + responseString.length());
   strcpy(reinterpret_cast<char*>(payload), responseString.c_str());
- 
-  //handle eth and IP
+
+  //handle TCP and IP
   swapPorts();
   prepareOutputIpPacket();
-  
+
   delete response;
   return mPacket;
 }
@@ -84,7 +81,9 @@ void PacketProcessor::swapPorts() {
 }
 
 bool PacketProcessor::isHttpNextLayer() {
-  return true;
+  //should be readed from config
+  constexpr uint16_t httpPort{8080u};
+  return ntohs(mTcpHdr->dst_port) == httpPort;
 }
 
 void PacketProcessor::prepareOutputIpPacket() {

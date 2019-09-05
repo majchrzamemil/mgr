@@ -43,7 +43,6 @@ class HttpRequest {
   RequestType mRequestType;
   std::string mRequestVersion;
   std::string mUri;
-  //for now
   std::string mPayload;
 };
 #endif

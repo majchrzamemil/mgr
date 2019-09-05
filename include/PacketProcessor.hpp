@@ -13,14 +13,14 @@
 
 class PacketProcessor {
  public:
-   PacketProcessor() = default; 
-   HttpRequest* processPacket(Packet* packet);
-   Packet* processHttpResp(HttpResponse* response);
+  PacketProcessor() = default;
+  HttpRequest* processPacket(Packet* packet);
+  Packet* processHttpResp(HttpResponse* response);
   ~PacketProcessor() {}
  private:
   bool handleIpPacket(Packet* packet);
   bool handleTcpPacket();
-  bool isHttpNextLayer(); 
+  bool isHttpNextLayer();
   void swapPorts();
   void prepareOutputIpPacket();
   Packet* mPacket;

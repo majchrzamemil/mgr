@@ -11,7 +11,8 @@ void HttpServer::run() {
     uint16_t packetsToFree{0u};
     uint16_t responsesCount{0u};
 
-    auto nrOfRecResp = rte_ring_dequeue_burst(mRxRing, reinterpret_cast<void**>(&requests), mTxBurstSize, nullptr);
+    auto nrOfRecResp = rte_ring_dequeue_burst(mRxRing, reinterpret_cast<void**>(&requests),
+                       mTxBurstSize, nullptr);
     if (nrOfRecResp == 0) {
       continue;
     }
@@ -21,6 +22,7 @@ void HttpServer::run() {
       if (unlikely(request->getRequestType() == RequestType::NOT_REQUEST)) {
         freePackets[packetsToFree++] = request->getPacket();
         delete request;
+        continue;
       }
       auto response = new HttpResponse(requests[it]->getPacket());
       auto endpoints = mEndpoints[request->getRequestType()];
