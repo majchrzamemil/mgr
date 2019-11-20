@@ -1,11 +1,11 @@
 all:
-export RTE_SDK := /home/emil/Documents/dpdk
-export RTE_TARGET := x86_64-native-linux-gcc
+export RTE_SDK := /home/eemimaj/repos/dpdk-stable-18.11.5
+export RTE_TARGET := x86_64-native-linuxapp-gcc
 
 include $(RTE_SDK)/mk/rte.vars.mk
 
-APP_DIR := /home/emil/Documents/MGR/mgr
-CC := g++-8 
+APP_DIR := /home/eemimaj/repos/mgr
+CC := g++ 
 APP := mgr
 _SRC_DIR := $(APP_DIR)/src
 SRCS-y := $(shell find $(_SRC_DIR) -type f -name *.cpp -or -name *.c)
@@ -16,7 +16,7 @@ RTE_SRCDIR = $(_SRC_DIR)
 RTE_OUTPUT := $(_OUTPUT_DIR)
 
 INCLUDES := -I$(INCLUDE_DIR)
-CFLAGS := -std=c++2a -O0 -g -ggdb $(INCLUDES) $(CFLAGS)
+CFLAGS := -std=c++17 -O3 $(INCLUDES) $(CFLAGS)
 _TARGET_TYPE := APP
 _LDLIBS := -L/usr/lib/x86_64-linux-gnu -lpthread -lm
 LDLIBS := $(_LDLIBS) 

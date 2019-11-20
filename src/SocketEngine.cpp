@@ -1,5 +1,8 @@
 #include "../include/SocketEngine.hpp"
 
+#include <rte_ip.h>
+#include <rte_tcp.h>
+
 #include <arpa/inet.h>
 #include <rte_ethdev.h>
 
