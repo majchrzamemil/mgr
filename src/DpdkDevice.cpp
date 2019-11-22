@@ -4,6 +4,8 @@
 
 #include <rte_ethdev.h>
 #include <rte_config.h>
+
+#include <iostream>
 //split to smaller functions
 DpdkDevice::DpdkDevice(const uint8_t portId, const uint32_t mBufPollSize,
                        const uint16_t memPoolCashSize,
@@ -15,7 +17,7 @@ DpdkDevice::DpdkDevice(const uint8_t portId, const uint32_t mBufPollSize,
   //init of mempool
   mMemPool = rte_mempool_create_empty("mMemPool", mBufPollSize, RTE_MBUF_DEFAULT_BUF_SIZE,
                                       memPoolCashSize,
-                                      sizeof(rte_pktmbuf_pool_private), SOCKET_ID_ANY, MEMPOOL_F_SP_PUT | MEMPOOL_F_SC_GET);
+                                      sizeof(rte_pktmbuf_pool_private), rte_eth_dev_socket_id(portId), MEMPOOL_F_SP_PUT | MEMPOOL_F_SC_GET);
 
   std::string ringMode{"ring_sp_sc"};
   rte_mempool_set_ops_byname(mMemPool, ringMode.c_str(), nullptr);
@@ -27,12 +29,16 @@ DpdkDevice::DpdkDevice(const uint8_t portId, const uint32_t mBufPollSize,
   struct rte_eth_dev_info dev_info;
   rte_eth_dev_info_get(portId, &dev_info);
 
+  std::cout << dev_info.rx_offload_capa;
+//        auto pci_dev = RTE_DEV_TO_PCI(dev_info.device);
+//  printf("%u::%u::%u",pci_dev->addr.domain, pci_dev->addr.buss, pci_dev->addr.devid);
+
   struct rte_eth_conf portConf;
   memset(&portConf, 0, sizeof(rte_eth_conf));
   portConf.rxmode.split_hdr_size = 0;
   portConf.rxmode.max_rx_pkt_len = 1500;
   portConf.rxmode.mq_mode = ETH_MQ_RX_NONE;
-  portConf.rxmode.offloads |= dev_info.rx_offload_capa;
+//  portConf.rxmode.offloads |= dev_info.rx_offload_capa;
   portConf.txmode.offloads |= dev_info.tx_offload_capa;
   portConf.txmode.hw_vlan_reject_tagged = 0;
   portConf.txmode.hw_vlan_reject_untagged = 0;
@@ -50,14 +56,16 @@ DpdkDevice::DpdkDevice(const uint8_t portId, const uint32_t mBufPollSize,
              ret, portId);
   }
 
-  if (auto ret = rte_eth_tx_queue_setup(portId, queueId, txBurstSize, SOCKET_ID_ANY, nullptr) < 0) {
+  if (auto ret = rte_eth_tx_queue_setup(portId, queueId, txBurstSize, rte_eth_dev_socket_id(portId), nullptr) < 0) {
     rte_exit(EXIT_FAILURE, "rte_eth_tx_queue_setup:err=%d, port=%u\n",
              ret, portId);
   }
 }
 
 bool DpdkDevice::startDevice() const {
-  if (rte_eth_dev_start(mPortId) < 0) {
+  std::cout << "startDevice\n";
+  if (auto rt = rte_eth_dev_start(mPortId); rt < 0) {
+    std::cout <<rt <<std::endl;
     return false;
   }
 

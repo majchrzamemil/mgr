@@ -21,6 +21,7 @@ class DpdkEngine : public Engine {
   void swapMac(rte_mbuf* packet) const;
   std::unique_ptr<DpdkDevice> mDevice;
   rte_mbuf** mRxPackets;
+  rte_mbuf* mBufsToSend[128];
   constexpr static uint16_t mQueueId{0u};
   // rte_mbuf* mTxPackets[TX_BURST_SIZE]; // you might check if this will work, without allocatig packets in sendPackets()
 };

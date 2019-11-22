@@ -6,7 +6,7 @@ class STLS1(object):
         return STLStream(
             packet =
                     STLPktBuilder(
-                        pkt = Ether(src="e0:cb:4e:47:34:c0", dst="28:d2:44:07:d5:ac")/IP(src="192.168.1.2",dst="192.168.1.1")/TCP(dport=8080,sport=1234, flags="PA")/("GET /index.html HTTP/1.0 \n\n" )
+                        pkt = Ether(src="24:6e:96:28:08:d0", dst="24:6e:96:14:a6:c8")/IP(src="192.168.1.2",dst="192.168.1.1")/TCP(dport=8080,sport=1234, flags="PA")/("GET /index.html HTTP/1.0 \n\n" )
                     ),
              mode = STLTXCont())
 

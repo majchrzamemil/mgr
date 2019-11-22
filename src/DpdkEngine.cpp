@@ -19,7 +19,7 @@ bool DpdkEngine::init(int dpdkArgc, char** dpdkArgv, const EngineConfig& config)
   mRxPackets = new rte_mbuf*[mRxBurstSize];
 
   auto numOfPorts = rte_eth_dev_count_avail();
-  if (numOfPorts == 1u) {
+  if (numOfPorts >= 1u) {
     mDevice = std::make_unique<DpdkDevice>(config.portId, config.mBuffPoolSize, config. memPoolCashSize,
                                            config.memPoolFlags, config.rxBurstSize, config.txBurstSize);
   }
@@ -45,14 +45,13 @@ uint16_t DpdkEngine::receivePackets(Packet** packets) {
   return nrOfRecPkts;
 }
 bool DpdkEngine::sendPackets(Packet** packets, uint16_t pktCount) {
-  rte_mbuf* mBufsToSend[mTxBurstSize];
 
-  pktCount = pktCount > mTxBurstSize ? mTxBurstSize : pktCount;
+//  pktCount = pktCount > mTxBurstSize ? mTxBurstSize : pktCount;
   for (auto it{0u}; it < pktCount; ++it) {
     mBufsToSend[it] = packets[it]->getMBuf();
     swapMac(mBufsToSend[it]);
 
-    const size_t mBufDataLen{packets[it]->getMBuf()->data_len};
+    const size_t mBufDataLen{mBufsToSend[it]->data_len};
     const size_t packetDataLen{packets[it]->getDataLen() + sizeof(ether_hdr)};
     if (mBufDataLen < packetDataLen) {
       [[maybe_unused]] auto ret = rte_pktmbuf_append(mBufsToSend[it], packetDataLen - mBufDataLen);
@@ -74,16 +73,16 @@ bool DpdkEngine::sendPackets(Packet** packets, uint16_t pktCount) {
 }
 
 void DpdkEngine::freePackets(rte_ring* freeRing) const {
-  Packet* packets[mTxBurstSize];
-  auto nrOfPkts = rte_ring_dequeue_burst(freeRing, reinterpret_cast<void**>(packets), mTxBurstSize,
-                                         nullptr);
-  if (nrOfPkts == 0u) {
-    return;
-  }
-  for (auto it{0u}; it < nrOfPkts; ++it) {
-    rte_pktmbuf_free(packets[it]->getMBuf());
-    delete packets[it];
-  }
+//  Packet* packets[mTxBurstSize];
+//  auto nrOfPkts = rte_ring_dequeue_burst(freeRing, reinterpret_cast<void**>(packets), mTxBurstSize,
+//                                         nullptr);
+//  if (nrOfPkts == 0u) {
+//    return;
+//  }
+//  for (auto it{0u}; it < nrOfPkts; ++it) {
+//    rte_pktmbuf_free(packets[it]->getMBuf());
+//    delete packets[it];
+//  }
 }
 
 void DpdkEngine::swapMac(rte_mbuf* packet) const {
