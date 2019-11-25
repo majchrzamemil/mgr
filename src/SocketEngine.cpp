@@ -35,7 +35,7 @@ bool SocketEngine::sendPackets(Packet** packets, [[maybe_unused]]uint16_t pktCou
   constexpr uint8_t pktId{0u};
   constexpr uint8_t sizeOfEthIp{sizeof(ether_hdr) + sizeof(ipv4_hdr)};
   const uint16_t tcpPort = reinterpret_cast<tcp_hdr*>(packets[pktId]->getData() +
-                           sizeOfEthIp)->dst_port;
+                           sizeof(ipv4_hdr))->dst_port;
 
   sockaddr_in dst_addr;
   dst_addr.sin_family = AF_INET;
@@ -48,7 +48,7 @@ bool SocketEngine::sendPackets(Packet** packets, [[maybe_unused]]uint16_t pktCou
 
   packets[pktId]->freeData();
   delete packets[pktId];
-  if (rt != -1) {
+  if (rt == -1) {
     return false;
   }
   return true;
