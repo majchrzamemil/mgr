@@ -6,6 +6,8 @@
 #include <rte_ring.h>
 
 #include <memory>
+#include <iostream>
+#include <atomic>
 
 #include "Engine.hpp"
 #include "HttpRequest.hpp"

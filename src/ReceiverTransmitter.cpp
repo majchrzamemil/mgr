@@ -6,7 +6,6 @@
 
 #include <iostream>
 
-
 ReceiverTransmitter::ReceiverTransmitter(rte_ring* const rxRing, rte_ring* const txRing,
     rte_ring* const freeRing,
     Engine* const engine, const EngineConfig& config):  mEngine{engine}, mRxRing{rxRing}, mTxRing{txRing},

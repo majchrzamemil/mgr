@@ -13,6 +13,7 @@ class HttpServer {
     mFreeRing{freeRing}, mTxBurstSize{txBurstSize} {}
   void run();
   void registerHttpEndpoint(HttpEndpoint* endpoint);
+  static uint64_t processedRequests;
  private:
   rte_ring* const mRxRing;
   rte_ring* const mTxRing;

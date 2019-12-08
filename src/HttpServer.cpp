@@ -2,7 +2,17 @@
 #include "../include/HttpRequest.hpp"
 #include "../include/HttpResponse.hpp"
 
+#include <iostream>
+#include <signal.h>
+
+uint64_t HttpServer::processedRequests{0u};
+
+void sig_handler(int sig) {
+  std::cout << HttpServer::processedRequests << std::endl;
+}
+
 void HttpServer::run() {
+  signal(SIGABRT, sig_handler);
   HttpRequest* requests[mTxBurstSize];
   Packet* freePackets[mTxBurstSize];
   HttpResponse* responses[mTxBurstSize];
@@ -35,6 +45,7 @@ void HttpServer::run() {
       responses[responsesCount++] =  response;
       delete request;
     }
+    processedRequests+=responsesCount;
     rte_ring_enqueue_burst(mFreeRing, reinterpret_cast<void**>(freePackets), packetsToFree, nullptr);
     rte_ring_enqueue_burst(mTxRing, reinterpret_cast<void**>(responses), responsesCount, nullptr);
   }

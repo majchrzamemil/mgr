@@ -21,7 +21,6 @@ HttpRequest* PacketProcessor::processPacket(Packet* packet) {
   constexpr size_t httpOffset = sizeof(ipv4_hdr) + sizeof(tcp_hdr);
   uint8_t* payload = mPacket->getData() + httpOffset;
   HttpRequest* request = new HttpRequest{mPacket};
-
   HttpParser::parseRequest(reinterpret_cast<char*>(payload), request);
   return request;
 }
