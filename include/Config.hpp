@@ -2,6 +2,7 @@
 #define CONFIG
 #include <string>
 #include <algorithm>
+#include <string_view>
 
 #include "Engine.hpp"
 
@@ -17,7 +18,7 @@ constexpr uint16_t PP_LCORE{2u};
 constexpr uint16_t RING_SIZE{512u};
 constexpr EngineType ENGINE_TYPE{EngineType::DPDK};
 //constexpr EngineType ENGINE_TYPE{EngineType::SOCKET};
-
+constexpr std::string_view dupa{"dupa_chuj"};
 const EngineConfig config{
   .portId = 0u,
   .mBuffPoolSize = 4095u,
